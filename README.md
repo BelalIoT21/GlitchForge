@@ -38,11 +38,11 @@ pip install -r requirements.txt
 
 ## Timeline
 
-- Oct 2025: Literature review and proposal
-- Nov-Dec 2025: Core scanner development
-- Jan-Feb 2026: ML model training and integration
-- Mar-Apr 2026: Testing and evaluation
-- May 2026: Final dissertation submission
+- **Oct 2025**: Literature review and proposal
+- **Nov-Dec 2025**: Core scanner development
+- **Jan-Feb 2026**: ML model training and integration
+- **Mar-Apr 2026**: Testing and evaluation
+- **May 2026**: Final dissertation submission
 
 ## Author
 Belal Almshmesh (U2687294)
