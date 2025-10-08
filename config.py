@@ -96,8 +96,9 @@ SHAP_CONFIG = {
 # NVD API Configuration
 NVD_CONFIG = {
     'base_url': 'https://services.nvd.nist.gov/rest/json/cves/2.0',
-    'rate_limit_delay': 6,  # seconds between requests (NVD requires 6 seconds)
+    'rate_limit_delay': 0.6,  # 0.6 seconds with API key (instead of 6)
     'cwe_filters': ['CWE-89', 'CWE-79', 'CWE-352'],  # SQL, XSS, CSRF
-    'start_year': 2020,
-    'end_year': 2024
+    'start_year': 2023,
+    'end_year': 2024,
+    'api_key': 'd34953fb-9354-4924-a975-09db76588fce'  # Your NVD API key
 }
