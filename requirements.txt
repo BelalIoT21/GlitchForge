@@ -1,1 +1,24 @@
+# Web Requests
 requests==2.31.0
+beautifulsoup4==4.12.2
+
+# Machine Learning
+scikit-learn==1.3.2
+xgboost==2.0.3
+pandas==2.1.4
+numpy==1.26.2
+
+# Explainability
+shap==0.44.0
+lime==0.2.0.1
+
+# Visualization
+matplotlib==3.8.2
+seaborn==0.13.0
+
+# Web Framework (for later)
+flask==3.0.0
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
