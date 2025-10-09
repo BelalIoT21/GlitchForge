@@ -143,16 +143,28 @@ async function startScan(event) {
     const scanBtn = document.getElementById('scan-btn');
     
     // Get form data
-    const targetUrl = document.getElementById('target-url').value;
+    const targetUrl = document.getElementById('target-url').value.trim();
+    
+    if (!targetUrl) {
+        alert('Please enter a target URL');
+        return;
+    }
+    
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        alert('URL must start with http:// or https://');
+        return;
+    }
+    
     const scanTypes = [];
     
-    if (document.querySelector('input[name="scan_sql"]').checked) scanTypes.push('sql');
-    if (document.querySelector('input[name="scan_xss"]').checked) scanTypes.push('xss');
-    if (document.querySelector('input[name="scan_csrf"]').checked) scanTypes.push('csrf');
-    
-    if (scanTypes.length === 0) {
-        alert('Please select at least one vulnerability type to scan');
-        return;
+    if (document.querySelector('input[name="scan_sql"]') && document.querySelector('input[name="scan_sql"]').checked) {
+        scanTypes.push('sql');
+    }
+    if (document.querySelector('input[name="scan_xss"]') && document.querySelector('input[name="scan_xss"]').checked) {
+        scanTypes.push('xss');
+    }
+    if (document.querySelector('input[name="scan_csrf"]') && document.querySelector('input[name="scan_csrf"]').checked) {
+        scanTypes.push('csrf');
     }
     
     // Show progress
@@ -179,6 +191,7 @@ async function startScan(event) {
         const data = await response.json();
         
         if (data.success) {
+            console.log('Scan results:', data);
             displayScanResults(data.results, data.summary);
             resultsSection.style.display = 'block';
         } else {
@@ -229,55 +242,83 @@ function displayScanResults(results, summary) {
     // Display summary
     summaryDiv.innerHTML = `
         <div class="result-card">
-            <div class="result-value">${summary.total_scans}</div>
+            <div class="result-value">${summary.total_scans || 0}</div>
             <div class="result-label">Total Scans</div>
         </div>
         <div class="result-card">
-            <div class="result-value">${summary.vulnerabilities_found}</div>
+            <div class="result-value">${summary.vulnerabilities_found || 0}</div>
             <div class="result-label">Vulnerabilities Found</div>
         </div>
         <div class="result-card">
-            <div class="result-value">${summary.high_confidence}</div>
-            <div class="result-label">High Confidence</div>
+            <div class="result-value">${summary.high_confidence || 0}</div>
+            <div class="result-label">Critical/High</div>
         </div>
         <div class="result-card">
-            <div class="result-value">${summary.medium_confidence}</div>
-            <div class="result-label">Medium Confidence</div>
+            <div class="result-value">${summary.medium_confidence || 0}</div>
+            <div class="result-label">Medium</div>
         </div>
     `;
     
     // Display detailed results
     detailsDiv.innerHTML = '<h3>Detailed Findings</h3>';
     
+    if (!results || results.length === 0) {
+        detailsDiv.innerHTML += '<p style="color: var(--success); padding: 1rem; background: var(--light); border-radius: 8px;">✓ No vulnerabilities detected! The target appears secure.</p>';
+        return;
+    }
+    
     results.forEach((result, index) => {
         const vulnCard = document.createElement('div');
         vulnCard.className = 'card';
         vulnCard.style.marginBottom = '1rem';
         
-        const statusBadge = result.vulnerable 
-            ? `<span class="risk-badge risk-critical">⚠️ VULNERABLE</span>`
-            : `<span class="risk-badge risk-low">✅ SECURE</span>`;
+        // Determine severity color
+        let severityClass = 'risk-medium';
+        let severityIcon = '⚠️';
+        
+        if (result.severity === 'critical') {
+            severityClass = 'risk-critical';
+            severityIcon = '🔴';
+        } else if (result.severity === 'high') {
+            severityClass = 'risk-high';
+            severityIcon = '🟠';
+        } else if (result.severity === 'medium') {
+            severityClass = 'risk-medium';
+            severityIcon = '🟡';
+        }
+        
+        const statusBadge = `<span class="risk-badge ${severityClass}">${severityIcon} ${result.severity ? result.severity.toUpperCase() : 'UNKNOWN'}</span>`;
         
         vulnCard.innerHTML = `
-            <h4>${result.vulnerability_type} ${statusBadge}</h4>
-            <p><strong>Endpoint:</strong> ${result.endpoint}</p>
-            <p><strong>Confidence:</strong> ${result.confidence.toUpperCase()}</p>
-            <p><strong>CWE ID:</strong> ${result.cwe_id}</p>
-            ${result.vulnerable ? `
-                <p><strong>Successful Payloads:</strong> ${result.successful_payloads?.length || 0}</p>
-                <details style="margin-top: 1rem;">
-                    <summary style="cursor: pointer; font-weight: bold;">View Payloads</summary>
-                    <ul style="margin-top: 0.5rem;">
-                        ${(result.successful_payloads || []).slice(0, 5).map(p => 
-                            `<li><code>${p.type}</code>: ${escapeHtml(p.payload.substring(0, 50))}...</li>`
-                        ).join('')}
-                    </ul>
-                </details>
-            ` : ''}
+            <h4>${result.type || 'Security Issue'} ${statusBadge}</h4>
+            <div style="margin: 1rem 0;">
+                <p><strong>Details:</strong> ${result.details || 'No details available'}</p>
+                <p><strong>Recommendation:</strong> ${result.recommendation || 'Review and patch as needed'}</p>
+                ${result.tested_parameter ? `<p><strong>Tested Parameter:</strong> <code>${result.tested_parameter}</code></p>` : ''}
+                ${result.security_score ? `<p><strong>Security Score:</strong> ${result.security_score}</p>` : ''}
+                ${result.impact ? `<p><strong>Impact:</strong> ${result.impact}</p>` : ''}
+            </div>
         `;
         
         detailsDiv.appendChild(vulnCard);
     });
+    
+    // Add recommendations section
+    const recsCard = document.createElement('div');
+    recsCard.className = 'card';
+    recsCard.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    recsCard.style.color = 'white';
+    recsCard.innerHTML = `
+        <h3>🛡️ Next Steps</h3>
+        <ul style="margin: 1rem 0; padding-left: 1.5rem;">
+            <li>Review all findings and prioritize based on severity</li>
+            <li>Implement the recommended fixes for each vulnerability</li>
+            <li>Re-scan after applying patches to verify fixes</li>
+            <li>Consider implementing a Web Application Firewall (WAF)</li>
+            <li>Schedule regular security scans and audits</li>
+        </ul>
+    `;
+    detailsDiv.appendChild(recsCard);
 }
 
 function clearResults() {

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Results - GlitchForge</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo">🔥</span>
+                <h1>GlitchForge</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/scan">Scan Website</a></li>
+                <li><a href="/results" class="active">Results</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="page-header">
+            <h1>🔍 Scan Results</h1>
+            <p id="scan-url-display">Loading scan results...</p>
+        </header>
+
+        <!-- Overall Security Score -->
+        <section class="card" style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h2>Overall Security Score</h2>
+            <div style="font-size: 4rem; margin: 1rem 0;" id="overall-score">-</div>
+            <div style="font-size: 1.5rem; margin-bottom: 1rem;" id="overall-rating">Analyzing...</div>
+            <p id="overall-message" style="font-size: 1.1rem; opacity: 0.9;"></p>
+        </section>
+
+        <!-- Risk Breakdown Chart -->
+        <section class="card">
+            <h2>📊 Risk Breakdown</h2>
+            <div style="max-width: 500px; margin: 0 auto;">
+                <canvas id="riskChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Vulnerabilities Found -->
+        <section class="card">
+            <h2>⚠️ Vulnerabilities Found</h2>
+            <div id="vulnerabilities-list">
+                <p>Loading findings...</p>
+            </div>
+        </section>
+
+        <!-- Action Plan -->
+        <section class="card" style="background: #f8f9fa;">
+            <h2>🛠️ How to Fix These Issues</h2>
+            <div id="fix-instructions">
+                <p>Analyzing vulnerabilities...</p>
+            </div>
+        </section>
+
+        <!-- What Could Happen? -->
+        <section class="card">
+            <h2>💥 What Could Happen If You Don't Fix This?</h2>
+            <div id="attack-scenarios">
+                <p>Loading attack scenarios...</p>
+            </div>
+        </section>
+
+        <!-- Export & Rescan -->
+        <section class="card">
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="window.location.href='/scan'">
+                    🔄 Scan Again
+                </button>
+                <button class="btn btn-secondary" onclick="exportResults()">
+                    📄 Export Report
+                </button>
+                <button class="btn btn-secondary" onclick="window.print()">
+                    🖨️ Print Results
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 GlitchForge - Explainable AI for Cybersecurity</p>
+        </div>
+    </footer>
+
+    <script>
+        const scanResults = JSON.parse(sessionStorage.getItem('scanResults') || '{}');
+        
+        if (!scanResults.url) {
+            document.querySelector('.page-header p').textContent = 'No scan data available. Please run a scan first.';
+        } else {
+            displayResults(scanResults);
+        }
+
+        function displayResults(data) {
+            document.getElementById('scan-url-display').textContent = `Scanned: ${data.url}`;
+            
+            const findings = data.findings || [];
+            let securityScore = 100;
+            let criticalCount = 0;
+            let highCount = 0;
+            let mediumCount = 0;
+            
+            findings.forEach(f => {
+                if (f.severity === 'critical') {
+                    securityScore -= 30;
+                    criticalCount++;
+                } else if (f.severity === 'high') {
+                    securityScore -= 20;
+                    highCount++;
+                } else if (f.severity === 'medium') {
+                    securityScore -= 10;
+                    mediumCount++;
+                }
+            });
+            
+            securityScore = Math.max(0, securityScore);
+            
+            document.getElementById('overall-score').textContent = securityScore + '/100';
+            
+            let rating, emoji, message;
+            if (securityScore >= 90) {
+                rating = '🟢 EXCELLENT';
+                emoji = '🎉';
+                message = 'Your website has strong security!';
+            } else if (securityScore >= 70) {
+                rating = '🟡 GOOD';
+                emoji = '👍';
+                message = 'Your website is fairly secure, but there are issues to fix.';
+            } else if (securityScore >= 50) {
+                rating = '🟠 NEEDS IMPROVEMENT';
+                emoji = '⚠️';
+                message = 'Your website has significant vulnerabilities that need immediate attention.';
+            } else {
+                rating = '🔴 CRITICAL';
+                emoji = '🚨';
+                message = 'URGENT: Your website has critical security issues. Fix immediately!';
+            }
+            
+            document.getElementById('overall-rating').textContent = rating;
+            document.getElementById('overall-message').textContent = `${emoji} ${message}`;
+            
+            createRiskChart(criticalCount, highCount, mediumCount);
+            displayVulnerabilities(findings);
+            displayFixInstructions(findings);
+            displayAttackScenarios(findings);
+        }
+
+        function createRiskChart(critical, high, medium) {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            const total = critical + high + medium;
+            
+            if (total === 0) {
+                document.getElementById('riskChart').parentElement.innerHTML = '<p style="text-align: center; color: var(--success); font-size: 1.2rem;">🎉 No vulnerabilities detected!</p>';
+                return;
+            }
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['🔴 Critical', '🟠 High Risk', '🟡 Medium Risk'],
+                    datasets: [{
+                        data: [critical, high, medium],
+                        backgroundColor: ['#ef476f', '#ffd166', '#06d6a0'],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 14 }, padding: 15 }
+                        },
+                        title: {
+                            display: true,
+                            text: `${total} Total Issues Found`,
+                            font: { size: 16, weight: 'bold' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayVulnerabilities(findings) {
+            const container = document.getElementById('vulnerabilities-list');
+            
+            if (findings.length === 0) {
+                container.innerHTML = '<p style="color: var(--success); font-size: 1.1rem;">✅ No vulnerabilities found!</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            findings.forEach((finding, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.marginBottom = '1.5rem';
+                card.style.borderLeft = `5px solid ${getSeverityColor(finding.severity)}`;
+                
+                const icon = getSeverityIcon(finding.severity);
+                
+                // Build ML explanation section if available
+                let mlSection = '';
+                if (finding.ml_explanation && finding.ml_explanation.why_this_score) {
+                    mlSection = `
+                        <div style="background: #e7f3ff; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #2196F3;">
+                            <p style="margin: 0; font-weight: bold; color: #1976D2;">
+                                🤖 AI Risk Analysis (SHAP)
+                            </p>
+                            <p style="margin: 0.5rem 0 0 0; color: #0d47a1;">
+                                <strong>ML Risk Score:</strong> ${finding.ml_risk_score.toFixed(1)}/10
+                                ${finding.ml_explanation.deviation > 0.5 ? 
+                                    `<span style="color: #ef476f;">(+${finding.ml_explanation.deviation.toFixed(1)} higher than average)</span>` : 
+                                    ''}
+                            </p>
+                            <p style="margin: 0.5rem 0 0 0; color: #0d47a1;">
+                                <strong>Why this score:</strong> ${finding.ml_explanation.why_this_score.join(', ')}
+                            </p>
+                        </div>
+                    `;
+                }
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 0.5rem 0; color: ${getSeverityColor(finding.severity)};">
+                                ${icon} ${finding.type}
+                            </h3>
+                            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                                <p style="margin: 0; font-size: 1.1rem; color: var(--dark);">
+                                    <strong>What this means:</strong> ${finding.details}
+                                </p>
+                            </div>
+                            ${mlSection}
+                            ${finding.tested_parameter ? `
+                                <p style="margin: 0.5rem 0; color: var(--gray);">
+                                    <strong>Found in:</strong> <code style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 4px;">${finding.tested_parameter}</code>
+                                </p>
+                            ` : ''}
+                        </div>
+                        <div style="margin-left: 1rem;">
+                            <span class="risk-badge" style="background: ${getSeverityColor(finding.severity)}; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold;">
+                                ${finding.severity.toUpperCase()}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function displayFixInstructions(findings) {
+            const container = document.getElementById('fix-instructions');
+            
+            if (findings.length === 0) {
+                container.innerHTML = '<p>✅ No fixes needed - your site is secure!</p>';
+                return;
+            }
+            
+            container.innerHTML = '<p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Follow these step-by-step instructions:</p>';
+            
+            findings.forEach((finding, index) => {
+                const fixCard = document.createElement('div');
+                fixCard.style.background = 'white';
+                fixCard.style.padding = '1.5rem';
+                fixCard.style.borderRadius = '10px';
+                fixCard.style.marginBottom = '1rem';
+                fixCard.style.border = `2px solid ${getSeverityColor(finding.severity)}`;
+                
+                fixCard.innerHTML = `
+                    <h4 style="color: ${getSeverityColor(finding.severity)}; margin: 0 0 1rem 0;">
+                        ${index + 1}. Fix: ${finding.type}
+                    </h4>
+                    <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 1rem;">
+                        <p style="margin: 0; font-weight: bold;">💡 Recommendation:</p>
+                        <p style="margin: 0.5rem 0 0 0;">${finding.recommendation}</p>
+                    </div>
+                    ${finding.impact ? `
+                        <div style="background: #f8d7da; padding: 1rem; border-radius: 8px; border-left: 4px solid #dc3545;">
+                            <p style="margin: 0; font-weight: bold; color: #721c24;">⚠️ Impact if not fixed:</p>
+                            <p style="margin: 0.5rem 0 0 0; color: #721c24;">${finding.impact}</p>
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(fixCard);
+        });
+        
+        // Add general security tips
+        const tipsCard = document.createElement('div');
+        tipsCard.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        tipsCard.style.color = 'white';
+        tipsCard.style.padding = '1.5rem';
+        tipsCard.style.borderRadius = '10px';
+        tipsCard.style.marginTop = '2rem';
+        
+        tipsCard.innerHTML = `
+            <h4 style="margin: 0 0 1rem 0;">🛡️ General Security Best Practices</h4>
+            <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+                <li>Keep all software and plugins up to date</li>
+                <li>Use strong, unique passwords for all accounts</li>
+                <li>Enable two-factor authentication (2FA) where possible</li>
+                <li>Regularly backup your website data</li>
+                <li>Monitor your site for unusual activity</li>
+                <li>Consider using a Web Application Firewall (WAF)</li>
+                <li>Conduct regular security audits</li>
+                <li>Train your team on security awareness</li>
+            </ul>
+        `;
+        
+        container.appendChild(tipsCard);
+    }
+
+    function displayAttackScenarios(findings) {
+        const container = document.getElementById('attack-scenarios');
+        
+        if (findings.length === 0) {
+            container.innerHTML = '<p>✅ No security risks detected!</p>';
+            return;
+        }
+        
+        container.innerHTML = '<p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Here\'s what hackers could do if these vulnerabilities aren\'t fixed:</p>';
+        
+        const scenarios = [];
+        
+        findings.forEach(finding => {
+            let scenario = '';
+            
+            if (finding.type.includes('SQL')) {
+                scenario = `
+                    <div class="feature-item" style="border-left-color: #ef476f;">
+                        <div>
+                            <div class="feature-name">💀 Database Breach</div>
+                            <div class="feature-value">
+                                Hackers could inject malicious SQL code to:
+                                <ul style="margin: 0.5rem 0 0 1.5rem;">
+                                    <li>Steal ALL your database data (customer info, passwords, credit cards)</li>
+                                    <li>Delete or modify records</li>
+                                    <li>Take complete control of your database</li>
+                                    <li>Use your database to attack other systems</li>
+                                </ul>
+                                <strong style="color: #ef476f;">This could result in lawsuits, fines, and loss of customer trust.</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (finding.type.includes('XSS')) {
+                scenario = `
+                    <div class="feature-item" style="border-left-color: #ffd166;">
+                        <div>
+                            <div class="feature-name">🎭 User Account Hijacking</div>
+                            <div class="feature-value">
+                                Hackers could inject malicious scripts to:
+                                <ul style="margin: 0.5rem 0 0 1.5rem;">
+                                    <li>Steal user session cookies and take over accounts</li>
+                                    <li>Redirect users to phishing sites</li>
+                                    <li>Steal sensitive data entered by users</li>
+                                    <li>Deface your website with malicious content</li>
+                                </ul>
+                                <strong style="color: #f77f00;">Users could have their personal data stolen without knowing.</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (finding.type.includes('HTTPS') || finding.type.includes('SSL')) {
+                scenario = `
+                    <div class="feature-item" style="border-left-color: #ef476f;">
+                        <div>
+                            <div class="feature-name">🔓 Man-in-the-Middle Attacks</div>
+                            <div class="feature-value">
+                                Without HTTPS encryption:
+                                <ul style="margin: 0.5rem 0 0 1.5rem;">
+                                    <li>Anyone on the same WiFi can see ALL data transmitted</li>
+                                    <li>Passwords are sent in plain text</li>
+                                    <li>Credit card numbers can be intercepted</li>
+                                    <li>Hackers can modify the content users see</li>
+                                </ul>
+                                <strong style="color: #ef476f;">This is like sending postcards instead of sealed letters - anyone can read them!</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (finding.type.includes('Header')) {
+                scenario = `
+                    <div class="feature-item" style="border-left-color: #06d6a0;">
+                        <div>
+                            <div class="feature-name">🎯 Easier Attack Surface</div>
+                            <div class="feature-value">
+                                Missing security headers make it easier for attackers to:
+                                <ul style="margin: 0.5rem 0 0 1.5rem;">
+                                    <li>Embed your site in malicious frames (clickjacking)</li>
+                                    <li>Inject malicious scripts more easily</li>
+                                    <li>Exploit browser vulnerabilities</li>
+                                    <li>Perform MIME-type attacks</li>
+                                </ul>
+                                <strong style="color: #06d6a0;">These are easy fixes that add important layers of protection.</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (scenario) {
+                scenarios.push(scenario);
+            }
+        });
+        
+        if (scenarios.length === 0) {
+            scenarios.push(`
+                <div class="feature-item">
+                    <div>
+                        <div class="feature-name">⚠️ General Security Risks</div>
+                        <div class="feature-value">
+                            The vulnerabilities found could allow attackers to compromise your website's security,
+                            potentially leading to data breaches, service disruptions, or unauthorized access.
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+        
+        container.innerHTML += '<div class="feature-contributions">' + scenarios.join('') + '</div>';
+        
+        // Add urgency meter
+        const criticalCount = findings.filter(f => f.severity === 'critical').length;
+        if (criticalCount > 0) {
+            const urgencyCard = document.createElement('div');
+            urgencyCard.style.background = '#ef476f';
+            urgencyCard.style.color = 'white';
+            urgencyCard.style.padding = '1.5rem';
+            urgencyCard.style.borderRadius = '10px';
+            urgencyCard.style.marginTop = '2rem';
+            urgencyCard.style.textAlign = 'center';
+            
+            urgencyCard.innerHTML = `
+                <h3 style="margin: 0 0 0.5rem 0;">🚨 URGENT ACTION REQUIRED</h3>
+                <p style="font-size: 1.2rem; margin: 0;">
+                    You have ${criticalCount} critical ${criticalCount === 1 ? 'vulnerability' : 'vulnerabilities'}.
+                    <br>Fix ${criticalCount === 1 ? 'this' : 'these'} immediately to prevent attacks!
+                </p>
+            `;
+            
+            container.appendChild(urgencyCard);
+        }
+    }
+
+    function getSeverityColor(severity) {
+        const colors = {
+            'critical': '#ef476f',
+            'high': '#ffd166',
+            'medium': '#06d6a0',
+            'low': '#4ecdc4'
+        };
+        return colors[severity] || '#6c757d';
+    }
+
+    function getSeverityIcon(severity) {
+        const icons = {
+            'critical': '🔴',
+            'high': '🟠',
+            'medium': '🟡',
+            'low': '🟢'
+        };
+        return icons[severity] || '⚪';
+    }
+
+    function exportResults() {
+        const results = sessionStorage.getItem('scanResults');
+        if (!results) {
+            alert('No scan results to export');
+            return;
+        }
+        
+        const blob = new Blob([results], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `glitchforge-scan-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        alert('✓ Results exported successfully!');
+    }
+</script>

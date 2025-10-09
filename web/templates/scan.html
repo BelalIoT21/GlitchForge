@@ -14,9 +14,8 @@
                 <h1>GlitchForge</h1>
             </div>
             <ul class="nav-menu">
-                <li><a href="/">Dashboard</a></li>
-                <li><a href="/scan" class="active">Scan</a></li>
-                <li><a href="/explain">Explain</a></li>
+                <li><a href="/">Home</a></li>
+                <li><a href="/scan" class="active">Scan Website</a></li>
             </ul>
         </div>
     </nav>
@@ -24,7 +23,7 @@
     <div class="container">
         <header class="page-header">
             <h1>🔍 Vulnerability Scanner</h1>
-            <p>Automated detection of SQL Injection, XSS, and CSRF vulnerabilities</p>
+            <p>Scan any website for security vulnerabilities in plain English</p>
         </header>
 
         <section class="scan-config">
@@ -34,9 +33,12 @@
                     <div class="form-group">
                         <label for="target-url">Target URL:</label>
                         <input type="text" id="target-url" name="target_url" 
-                               value="http://192.168.1.127/DVWA" 
-                               placeholder="http://target.com" required>
-                        <small>Default: DVWA test environment</small>
+                            value="https://example.com" 
+                            placeholder="https://example.com" 
+                            required>
+                        <small id="scan-type-hint" style="color: var(--primary); font-weight: bold;">
+                            🔍 Enter a website URL to scan for vulnerabilities
+                        </small>
                     </div>
 
                     <div class="form-group">
@@ -52,7 +54,7 @@
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" name="scan_csrf" checked>
-                                <span>Cross-Site Request Forgery (CSRF)</span>
+                                <span>CSRF & Security Headers</span>
                             </label>
                         </div>
                     </div>
@@ -66,6 +68,23 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Quick Scan Examples -->
+            <div class="card" style="background: #f8f9fa;">
+                <h3>🎯 Quick Test Sites</h3>
+                <p>Try scanning these websites to see GlitchForge in action:</p>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" onclick="quickScan('https://example.com')">
+                        Example.com (Secure)
+                    </button>
+                    <button class="btn btn-secondary" onclick="quickScan('https://google.com')">
+                        Google.com
+                    </button>
+                    <button class="btn btn-secondary" onclick="quickScan('http://testphp.vulnweb.com')">
+                        Test Vulnerable Site
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -101,5 +120,143 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Update scan type hint based on URL
+        document.getElementById('target-url').addEventListener('input', function(e) {
+            const url = e.target.value.toLowerCase();
+            const hint = document.getElementById('scan-type-hint');
+            
+            if (url.includes('dvwa')) {
+                hint.textContent = '🎯 DVWA detected - will perform deep vulnerability scan';
+                hint.style.color = 'var(--success)';
+            } else if (url.startsWith('http')) {
+                hint.textContent = '🌐 Generic website - will perform security check';
+                hint.style.color = 'var(--warning)';
+            } else {
+                hint.textContent = '⚠️ Please enter a valid URL starting with http:// or https://';
+                hint.style.color = 'var(--danger)';
+            }
+        });
+
+        // Quick scan function
+        function quickScan(url) {
+            document.getElementById('target-url').value = url;
+            document.getElementById('scan-form').dispatchEvent(new Event('submit'));
+        }
+
+        // Override startScan to redirect to results page
+        const originalStartScan = window.startScan;
+        window.startScan = async function(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('scan-form');
+            const progressSection = document.getElementById('scan-progress');
+            const resultsSection = document.getElementById('scan-results');
+            const scanBtn = document.getElementById('scan-btn');
+            
+            // Get form data
+            const targetUrl = document.getElementById('target-url').value.trim();
+            
+            if (!targetUrl) {
+                alert('Please enter a target URL');
+                return;
+            }
+            
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                alert('URL must start with http:// or https://');
+                return;
+            }
+            
+            const scanTypes = [];
+            
+            if (document.querySelector('input[name="scan_sql"]') && document.querySelector('input[name="scan_sql"]').checked) {
+                scanTypes.push('sql');
+            }
+            if (document.querySelector('input[name="scan_xss"]') && document.querySelector('input[name="scan_xss"]').checked) {
+                scanTypes.push('xss');
+            }
+            if (document.querySelector('input[name="scan_csrf"]') && document.querySelector('input[name="scan_csrf"]').checked) {
+                scanTypes.push('csrf');
+            }
+            
+            // Show progress
+            progressSection.style.display = 'block';
+            resultsSection.style.display = 'none';
+            scanBtn.disabled = true;
+            scanBtn.textContent = '⏳ Scanning...';
+            
+            // Animate progress
+            animateProgress();
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/scan/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_url: targetUrl,
+                        scan_types: scanTypes
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('Scan results:', data);
+                    
+                    // Save results to sessionStorage
+                    sessionStorage.setItem('scanResults', JSON.stringify({
+                        url: targetUrl,
+                        findings: data.results,
+                        summary: data.summary,
+                        timestamp: new Date().toISOString()
+                    }));
+                    
+                    // Redirect to results page
+                    window.location.href = '/results';
+                } else {
+                    alert('Scan failed: ' + data.error);
+                    progressSection.style.display = 'none';
+                    scanBtn.disabled = false;
+                    scanBtn.textContent = '🚀 Start Scan';
+                }
+            } catch (error) {
+                console.error('Error during scan:', error);
+                alert('Error during scan: ' + error.message);
+                progressSection.style.display = 'none';
+                scanBtn.disabled = false;
+                scanBtn.textContent = '🚀 Start Scan';
+            }
+        };
+
+        function animateProgress() {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            let progress = 0;
+            const steps = [
+                'Connecting to target...',
+                'Checking security headers...',
+                'Testing for SQL injection...',
+                'Testing for XSS vulnerabilities...',
+                'Checking SSL/TLS configuration...',
+                'Analyzing results...',
+                'Complete!'
+            ];
+            
+            const interval = setInterval(() => {
+                progress += 2;
+                progressFill.style.width = `${Math.min(progress, 95)}%`;
+                
+                const stepIndex = Math.min(Math.floor(progress / 15), steps.length - 1);
+                progressText.textContent = steps[stepIndex];
+                
+                if (progress >= 95) {
+                    clearInterval(interval);
+                }
+            }, 100);
+        }
+    </script>
 </body>
 </html>

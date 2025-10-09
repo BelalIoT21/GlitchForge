@@ -1,6 +1,6 @@
 """
-GlitchForge Web Dashboard
-Flask application for interactive vulnerability scanning and ML predictions
+GlitchForge Web Dashboard - Final Version
+Flask application with ML-enhanced vulnerability scanning
 """
 
 from flask import Flask, render_template, request, jsonify, send_file
@@ -9,22 +9,19 @@ import sys
 from pathlib import Path
 import json
 import pandas as pd
+import numpy as np
 import requests
 import pickle
-import base64
-from io import BytesIO
 from datetime import datetime
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import shap
-from lime.lime_tabular import LimeTabularExplainer
+import urllib3
+
+# Disable SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from scanners import VulnerabilityScanner
-from ml.explainer import VulnerabilityExplainer
 from config import DVWA_CONFIG, MODELS_DIR, PROCESSED_DATA_DIR
 
 app = Flask(__name__)
@@ -32,7 +29,6 @@ CORS(app)
 
 # Global variables
 scanner = None
-explainer = None
 model = None
 model_features = None
 
@@ -51,6 +47,10 @@ def load_model():
 # Load model on startup
 load_model()
 
+# ============================================================================
+# PAGE ROUTES
+# ============================================================================
+
 @app.route('/')
 def index():
     """Home page"""
@@ -61,14 +61,143 @@ def scan_page():
     """Scanning interface page"""
     return render_template('scan.html')
 
-@app.route('/explain')
-def explain_page():
-    """Explanation page"""
-    return render_template('explain.html')
+@app.route('/results')
+def results_page():
+    """Scan results page"""
+    return render_template('results.html')
+
+# ============================================================================
+# ML HELPER FUNCTIONS
+# ============================================================================
+
+def create_feature_dict_from_vulnerability(vulnerability):
+    """Convert vulnerability to feature dictionary for ML model"""
+    
+    features = {}
+    
+    # Initialize all features to 0
+    for feature_name in model_features:
+        features[feature_name] = 0.0
+    
+    # Map vulnerability type to features
+    if 'SQL' in vulnerability['type']:
+        features['cvss_base_score'] = 9.0
+        features['attack_vector_NETWORK'] = 1
+        features['privileges_required_NONE'] = 1
+        features['user_interaction_NONE'] = 1
+        features['confidentiality_impact_HIGH'] = 1
+        features['integrity_impact_HIGH'] = 1
+        features['exploit_available'] = 1
+        features['days_since_disclosure'] = 1  # Newly discovered
+        
+    elif 'XSS' in vulnerability['type']:
+        features['cvss_base_score'] = 7.5
+        features['attack_vector_NETWORK'] = 1
+        features['privileges_required_NONE'] = 1
+        features['confidentiality_impact_HIGH'] = 1
+        features['exploit_available'] = 1
+        features['days_since_disclosure'] = 1
+        
+    elif 'HTTPS' in vulnerability['type'] or 'SSL' in vulnerability['type']:
+        features['cvss_base_score'] = 7.5
+        features['attack_vector_NETWORK'] = 1
+        features['confidentiality_impact_HIGH'] = 1
+        features['integrity_impact_HIGH'] = 1
+        
+    elif 'Header' in vulnerability['type']:
+        if vulnerability['severity'] == 'critical':
+            features['cvss_base_score'] = 7.0
+        elif vulnerability['severity'] == 'high':
+            features['cvss_base_score'] = 6.0
+        else:
+            features['cvss_base_score'] = 4.0
+        features['attack_vector_NETWORK'] = 1
+    
+    return features
+
+
+def calculate_ml_risk_score(vulnerability):
+    """
+    Use ML model to calculate risk score
+    Returns risk score and plain English explanation
+    """
+    
+    # Get features
+    features = create_feature_dict_from_vulnerability(vulnerability)
+    
+    # Convert to numpy array matching model's feature order
+    feature_vector = []
+    for feature_name in model_features:
+        feature_vector.append(features.get(feature_name, 0.0))
+    
+    X = np.array(feature_vector).reshape(1, -1).astype('float64')
+    
+    # Predict risk score
+    risk_score = float(model.predict(X)[0])
+    
+    # Get base risk (average)
+    try:
+        import shap
+        explainer = shap.TreeExplainer(model)
+        base_value = float(explainer.expected_value)
+        shap_values = explainer.shap_values(X)[0]
+        
+        # Get top contributing factors
+        reasons = []
+        feature_impacts = []
+        
+        for i, (feat_name, shap_val) in enumerate(zip(model_features, shap_values)):
+            if abs(shap_val) > 0.1:
+                feature_impacts.append({
+                    'feature': feat_name,
+                    'impact': float(shap_val),
+                    'value': features.get(feat_name, 0.0)
+                })
+        
+        feature_impacts.sort(key=lambda x: abs(x['impact']), reverse=True)
+        
+        # Convert to plain English (top 3 only)
+        for factor in feature_impacts[:3]:
+            if 'cvss' in factor['feature']:
+                reasons.append(f"High severity score ({factor['value']:.1f}/10)")
+            elif 'exploit' in factor['feature'] and factor['value'] > 0:
+                reasons.append("Public exploits available")
+            elif 'network' in factor['feature'].lower() and factor['value'] > 0:
+                reasons.append("Can be exploited remotely")
+            elif 'privileges_required_NONE' in factor['feature'] and factor['value'] > 0:
+                reasons.append("No login required")
+            elif 'confidentiality' in factor['feature'].lower() and factor['value'] > 0:
+                reasons.append("Can steal sensitive data")
+            elif 'integrity' in factor['feature'].lower() and factor['value'] > 0:
+                reasons.append("Can modify data")
+        
+        explanation = {
+            'risk_score': risk_score,
+            'base_risk': base_value,
+            'deviation': risk_score - base_value,
+            'why_this_score': reasons if reasons else ['Based on vulnerability characteristics'],
+            'method': 'SHAP (AI Explanation)'
+        }
+        
+    except Exception as e:
+        # Fallback if SHAP fails
+        explanation = {
+            'risk_score': risk_score,
+            'base_risk': 5.0,
+            'deviation': risk_score - 5.0,
+            'why_this_score': ['Based on vulnerability type and severity'],
+            'method': 'ML Model'
+        }
+    
+    return explanation
+
+# ============================================================================
+# SCANNING API
+# ============================================================================
 
 @app.route('/api/scan/start', methods=['POST'])
 def start_scan():
-    """Start vulnerability scan"""
+    """Start vulnerability scan with ML risk scoring"""
     global scanner
     
     data = request.json
@@ -76,800 +205,307 @@ def start_scan():
     scan_types = data.get('scan_types', ['sql', 'xss', 'csrf'])
     
     try:
-        # Initialize scanner
-        scanner = VulnerabilityScanner(target_url)
+        is_dvwa = 'dvwa' in target_url.lower()
         
-        # Login
-        if not scanner.login_dvwa():
-            return jsonify({
-                'success': False,
-                'error': 'Failed to authenticate with target'
-            }), 400
-        
-        scanner.set_security_level('low')
-        
-        # Run scans
-        results = []
-        
-        if 'sql' in scan_types:
-            sql_result = scanner.scan_sql_injection('vulnerabilities/sqli/', 'id')
-            results.append(sql_result)
-        
-        if 'xss' in scan_types:
-            xss_result = scanner.scan_xss('vulnerabilities/xss_r/', 'name')
-            results.append(xss_result)
-        
-        if 'csrf' in scan_types:
-            csrf_result = scanner.scan_csrf('vulnerabilities/csrf/')
-            results.append(csrf_result)
-        
-        # Get summary
-        summary = scanner.get_summary()
-        
-        return jsonify({
-            'success': True,
-            'results': results,
-            'summary': summary
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/vulnerabilities/list', methods=['GET'])
-def list_vulnerabilities():
-    """List vulnerabilities from dataset"""
-    
-    try:
-        df = pd.read_csv(PROCESSED_DATA_DIR / 'processed_nvd_data.csv')
-        
-        # Get sample
-        sample_size = int(request.args.get('limit', 20))
-        sample = df.sample(n=min(sample_size, len(df)))
-        
-        vulns = []
-        for _, row in sample.iterrows():
-            vulns.append({
-                'cve_id': row.get('cve_id', 'Unknown'),
-                'cvss_score': float(row.get('cvss_base_score', 0)),
-                'risk_score': float(row.get('risk_score', 0)),
-                'days_old': int(row.get('days_since_disclosure', 0)),
-                'exploit_available': bool(row.get('exploit_available', 0))
-            })
-        
-        return jsonify({
-            'success': True,
-            'total': len(df),
-            'vulnerabilities': vulns
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/predict', methods=['POST'])
-def predict_risk():
-    """Predict risk score for vulnerability"""
-    
-    data = request.json
-    cve_id = data.get('cve_id')
-    
-    try:
-        df = pd.read_csv(PROCESSED_DATA_DIR / 'processed_nvd_data.csv')
-        
-        # Find vulnerability
-        vuln = df[df['cve_id'] == cve_id].iloc[0]
-        
-        # Get features
-        exclude_cols = ['cve_id', 'risk_score', 'cwe_ids', 'description', 
-                       'published_date', 'modified_date']
-        feature_cols = [col for col in df.columns if col not in exclude_cols]
-        
-        X = vuln[feature_cols].values.reshape(1, -1)
-        
-        # Predict
-        prediction = float(model.predict(X)[0])
-        
-        return jsonify({
-            'success': True,
-            'cve_id': cve_id,
-            'cvss_score': float(vuln['cvss_base_score']),
-            'predicted_risk': prediction,
-            'risk_level': 'CRITICAL' if prediction >= 9 else 'HIGH' if prediction >= 7 else 'MEDIUM'
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/explain', methods=['POST'])
-def explain_prediction():
-    """Generate SHAP explanation for ANY vulnerability on-demand"""
-    
-    data = request.json
-    cve_id = data.get('cve_id')
-    
-    try:
-        # Load the full dataset
-        df = pd.read_csv(PROCESSED_DATA_DIR / 'processed_nvd_data.csv')
-        
-        if cve_id not in df['cve_id'].values:
-            return jsonify({
-                'success': False,
-                'error': 'CVE not found in database'
-            }), 404
-        
-        # Get the specific vulnerability
-        vuln_row = df[df['cve_id'] == cve_id].iloc[0]
-        
-        # Extract features
-        exclude_cols = ['cve_id', 'risk_score', 'cwe_ids', 'description', 
-                       'published_date', 'modified_date']
-        feature_cols = [col for col in df.columns if col not in exclude_cols]
-        
-        # Get feature values for this vulnerability
-        X_vuln = vuln_row[feature_cols].values.reshape(1, -1)
-        
-        # Convert to float64 for SHAP
-        X_vuln = X_vuln.astype('float64')
-        
-        # Make prediction
-        prediction = float(model.predict(X_vuln)[0])
-        
-        # Create SHAP explainer on-the-fly with small background sample
-        print(f"[*] Creating SHAP explainer for {cve_id}...")
-        background = shap.sample(df[feature_cols].astype('float64'), 50)
-        explainer = shap.TreeExplainer(model)
-        
-        # Calculate SHAP values for this specific vulnerability
-        shap_values = explainer.shap_values(X_vuln)
-        base_value = float(explainer.expected_value)
-        
-        # Get feature contributions
-        feature_contributions = []
-        for feat, val, shap_val in zip(feature_cols, X_vuln[0], shap_values[0]):
-            feature_contributions.append({
-                'feature': feat,
-                'value': float(val),
-                'shap_value': float(shap_val),
-                'impact': 'positive' if shap_val > 0 else 'negative'
-            })
-        
-        # Sort by absolute SHAP value
-        feature_contributions.sort(key=lambda x: abs(x['shap_value']), reverse=True)
-        
-        # Generate human-readable explanation
-        explanation = generate_human_explanation(
-            cve_id=cve_id,
-            vuln_row=vuln_row,
-            prediction=prediction,
-            base_value=base_value,
-            top_features=feature_contributions[:10]
-        )
-        
-        return jsonify({
-            'success': True,
-            'cve_id': cve_id,
-            'prediction': prediction,
-            'base_value': base_value,
-            'cvss_score': float(vuln_row['cvss_base_score']),
-            'top_features': feature_contributions[:15],
-            'explanation': explanation  # NEW: Human-readable explanation
-        })
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-    
-@app.route('/api/explain/lime', methods=['POST'])
-def explain_with_lime():
-    """Generate LIME explanation for comparison with SHAP"""
-    
-    data = request.json
-    cve_id = data.get('cve_id')
-    
-    try:
-        # Load dataset
-        df = pd.read_csv(PROCESSED_DATA_DIR / 'processed_nvd_data.csv')
-        
-        if cve_id not in df['cve_id'].values:
-            return jsonify({
-                'success': False,
-                'error': 'CVE not found'
-            }), 404
-        
-        # Get vulnerability
-        vuln_row = df[df['cve_id'] == cve_id].iloc[0]
-        
-        # Extract features
-        exclude_cols = ['cve_id', 'risk_score', 'cwe_ids', 'description', 
-                       'published_date', 'modified_date']
-        feature_cols = [col for col in df.columns if col not in exclude_cols]
-        
-        X_train = df[feature_cols].astype('float64').values
-        X_vuln = vuln_row[feature_cols].values.reshape(1, -1).astype('float64')
-        
-        # Make prediction
-        prediction = float(model.predict(X_vuln)[0])
-        
-        # Create LIME explainer
-        print(f"[*] Creating LIME explainer for {cve_id}...")
-        lime_explainer = LimeTabularExplainer(
-            X_train,
-            feature_names=feature_cols,
-            mode='regression',
-            random_state=42
-        )
-        
-        # Generate explanation
-        lime_exp = lime_explainer.explain_instance(
-            X_vuln[0],
-            model.predict,
-            num_features=15
-        )
-        
-        # Extract feature contributions
-        lime_features = []
-        for feat, weight in lime_exp.as_list():
-            # Parse feature name and value from LIME format
-            feat_name = feat.split('<=')[0].split('>')[0].strip()
+        if is_dvwa:
+            # DVWA-specific scanning
+            scanner = VulnerabilityScanner(target_url)
             
-            lime_features.append({
-                'feature': feat_name,
-                'weight': float(weight),
-                'impact': 'positive' if weight > 0 else 'negative'
+            if not scanner.login_dvwa():
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to connect to DVWA. Make sure DVWA is running.'
+                }), 400
+            
+            scanner.set_security_level('low')
+            
+            results = []
+            
+            if 'sql' in scan_types:
+                sql_result = scanner.scan_sql_injection('vulnerabilities/sqli/', 'id')
+                results.append(sql_result)
+            
+            if 'xss' in scan_types:
+                xss_result = scanner.scan_xss('vulnerabilities/xss_r/', 'name')
+                results.append(xss_result)
+            
+            if 'csrf' in scan_types:
+                csrf_result = scanner.scan_csrf('vulnerabilities/csrf/')
+                results.append(csrf_result)
+            
+            summary = scanner.get_summary()
+            
+            return jsonify({
+                'success': True,
+                'results': results,
+                'summary': summary,
+                'scan_type': 'dvwa'
             })
         
-        # Sort by absolute weight
-        lime_features.sort(key=lambda x: abs(x['weight']), reverse=True)
+        else:
+            # Generic website scanning with ML enhancement
+            print(f"[*] Performing ML-enhanced scan on {target_url}...")
+            
+            findings = []
+            
+            # Run security checks
+            headers_result = check_security_headers(target_url)
+            if headers_result:
+                findings.append(headers_result)
+            
+            sql_result = quick_sql_test(target_url)
+            if sql_result:
+                findings.append(sql_result)
+            
+            xss_result = quick_xss_test(target_url)
+            if xss_result:
+                findings.append(xss_result)
+            
+            ssl_result = check_ssl(target_url)
+            if ssl_result:
+                findings.append(ssl_result)
+            
+            # ✨ Add ML risk scoring to each finding
+            for finding in findings:
+                try:
+                    ml_explanation = calculate_ml_risk_score(finding)
+                    finding['ml_risk_score'] = ml_explanation['risk_score']
+                    finding['ml_explanation'] = ml_explanation
+                except Exception as e:
+                    print(f"[!] ML scoring failed for {finding['type']}: {e}")
+                    finding['ml_risk_score'] = 5.0
+                    finding['ml_explanation'] = {
+                        'risk_score': 5.0,
+                        'why_this_score': ['Based on vulnerability severity'],
+                        'method': 'Fallback'
+                    }
+            
+            # Sort by ML risk score (highest first)
+            findings.sort(key=lambda x: x.get('ml_risk_score', 0), reverse=True)
+            
+            # Create summary
+            summary = {
+                'total_scans': len(findings),
+                'vulnerabilities_found': sum(1 for f in findings if f['severity'] in ['high', 'critical']),
+                'high_confidence': sum(1 for f in findings if f['severity'] == 'critical'),
+                'medium_confidence': sum(1 for f in findings if f['severity'] == 'high'),
+                'low_confidence': sum(1 for f in findings if f['severity'] == 'medium'),
+                'by_type': {
+                    'security_headers': sum(1 for f in findings if 'Header' in f['type']),
+                    'sql_injection': sum(1 for f in findings if 'SQL' in f['type']),
+                    'xss': sum(1 for f in findings if 'XSS' in f['type']),
+                    'ssl': sum(1 for f in findings if 'HTTPS' in f['type'] or 'SSL' in f['type'])
+                }
+            }
+            
+            return jsonify({
+                'success': True,
+                'results': findings,
+                'summary': summary,
+                'scan_type': 'generic',
+                'ml_powered': True
+            })
         
-        # Get R² score (fidelity)
-        fidelity = float(lime_exp.score)
-        
+    except requests.exceptions.Timeout:
         return jsonify({
-            'success': True,
-            'cve_id': cve_id,
-            'prediction': prediction,
-            'lime_features': lime_features,
-            'fidelity': fidelity,
-            'method': 'LIME (Local Interpretable Model-agnostic Explanations)'
-        })
-        
+            'success': False,
+            'error': 'Connection timeout. Please check the URL.'
+        }), 500
+    
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            'success': False,
+            'error': 'Cannot connect to the target URL. Please verify the URL is correct.'
+        }), 500
+    
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Scan error: {str(e)}'
         }), 500
 
-@app.route('/api/explain/compare', methods=['POST'])
-def compare_explanations():
-    """Compare SHAP and LIME explanations side-by-side"""
-    
-    data = request.json
-    cve_id = data.get('cve_id')
-    
-    try:
-        # Get both SHAP and LIME explanations
-        shap_result = explain_prediction()
-        lime_result = explain_with_lime()
-        
-        return jsonify({
-            'success': True,
-            'cve_id': cve_id,
-            'shap': json.loads(shap_result.get_data()),
-            'lime': json.loads(lime_result.get_data())
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/shap/summary')
-def get_shap_summary():
-    """Get SHAP summary image"""
-    try:
-        return send_file('../shap_summary.png', mimetype='image/png')
-    except:
-        return jsonify({'error': 'Image not found'}), 404
-
-@app.route('/api/shap/bar')
-def get_shap_bar():
-    """Get SHAP bar chart image"""
-    try:
-        return send_file('../shap_bar.png', mimetype='image/png')
-    except:
-        return jsonify({'error': 'Image not found'}), 404
-
-@app.route('/api/stats')
-def get_stats():
-    """Get system statistics"""
-    
-    try:
-        df = pd.read_csv(PROCESSED_DATA_DIR / 'processed_nvd_data.csv')
-        
-        stats = {
-            'total_vulnerabilities': len(df),
-            'high_risk': int((df['risk_score'] >= 7.0).sum()),
-            'medium_risk': int(((df['risk_score'] >= 4.0) & (df['risk_score'] < 7.0)).sum()),
-            'low_risk': int((df['risk_score'] < 4.0).sum()),
-            'with_exploits': int(df['exploit_available'].sum()),
-            'avg_risk_score': float(df['risk_score'].mean()),
-            'model_features': len(model_features)
-        }
-        
-        return jsonify({
-            'success': True,
-            'stats': stats
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/visualizations/risk-distribution')
-def risk_distribution():
-    """Get risk score distribution data"""
-    
-    try:
-        df = pd.read_csv(PROCESSED_DATA_DIR / 'processed_nvd_data.csv')
-        
-        # Calculate distribution
-        risk_bins = [0, 4, 7, 9, 10]
-        risk_labels = ['Low', 'Medium', 'High', 'Critical']
-        df['risk_category'] = pd.cut(df['risk_score'], bins=risk_bins, labels=risk_labels)
-        
-        distribution = df['risk_category'].value_counts().to_dict()
-        
-        # CVSS vs Risk Score correlation
-        correlation_data = df[['cvss_base_score', 'risk_score']].to_dict('records')
-        
-        # Exploit availability impact
-        with_exploits = df[df['exploit_available'] == 1]['risk_score'].mean()
-        without_exploits = df[df['exploit_available'] == 0]['risk_score'].mean()
-        
-        return jsonify({
-            'success': True,
-            'distribution': distribution,
-            'correlation': correlation_data[:100],  # Sample for performance
-            'exploit_impact': {
-                'with_exploits': float(with_exploits),
-                'without_exploits': float(without_exploits),
-                'difference': float(with_exploits - without_exploits)
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-    
-@app.route('/api/export/report', methods=['POST'])
-def export_report():
-    """Export vulnerability report in various formats"""
-    
-    data = request.json
-    cve_ids = data.get('cve_ids', [])
-    format_type = data.get('format', 'json')  # json, csv, or html
-    
-    try:
-        df = pd.read_csv(PROCESSED_DATA_DIR / 'processed_nvd_data.csv')
-        
-        if cve_ids:
-            report_df = df[df['cve_id'].isin(cve_ids)]
-        else:
-            # Export all high-risk vulnerabilities
-            report_df = df[df['risk_score'] >= 7.0].head(50)
-        
-        # Select relevant columns
-        export_cols = ['cve_id', 'cvss_base_score', 'risk_score', 
-                      'exploit_available', 'days_since_disclosure']
-        report_data = report_df[export_cols]
-        
-        if format_type == 'json':
-            return jsonify({
-                'success': True,
-                'data': report_data.to_dict('records'),
-                'count': len(report_data)
-            })
-        
-        elif format_type == 'csv':
-            csv_data = report_data.to_csv(index=False)
-            return jsonify({
-                'success': True,
-                'csv': csv_data,
-                'filename': f'glitchforge_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-            })
-        
-        elif format_type == 'html':
-            html_report = generate_html_report(report_data)
-            return jsonify({
-                'success': True,
-                'html': html_report
-            })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-def generate_html_report(df):
-    """Generate HTML report"""
-    
-    html = f"""
-    <html>
-    <head>
-        <title>GlitchForge Vulnerability Report</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 40px; }}
-            h1 {{ color: #ff6b35; }}
-            table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
-            th {{ background: #004e89; color: white; padding: 12px; text-align: left; }}
-            td {{ padding: 10px; border-bottom: 1px solid #ddd; }}
-            .critical {{ background: #ef476f; color: white; }}
-            .high {{ background: #ffd166; }}
-            .medium {{ background: #06d6a0; color: white; }}
-        </style>
-    </head>
-    <body>
-        <h1>🔥 GlitchForge Vulnerability Report</h1>
-        <p>Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
-        <p>Total Vulnerabilities: {len(df)}</p>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>CVE ID</th>
-                    <th>CVSS Score</th>
-                    <th>Risk Score</th>
-                    <th>Exploit Available</th>
-                    <th>Age (Days)</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
-    
-    for _, row in df.iterrows():
-        risk_class = 'critical' if row['risk_score'] >= 9 else 'high' if row['risk_score'] >= 7 else 'medium'
-        html += f"""
-                <tr class="{risk_class}">
-                    <td>{row['cve_id']}</td>
-                    <td>{row['cvss_base_score']:.1f}</td>
-                    <td>{row['risk_score']:.2f}</td>
-                    <td>{'Yes' if row['exploit_available'] else 'No'}</td>
-                    <td>{row['days_since_disclosure']}</td>
-                </tr>
-        """
-    
-    html += """
-            </tbody>
-        </table>
-    </body>
-    </html>
-    """
-    
-    return html
-
-@app.route('/api/scan/generic', methods=['POST'])
-def scan_generic_website():
-    """Scan any website for common vulnerabilities"""
-    
-    data = request.json
-    target_url = data.get('url')
-    scan_depth = data.get('depth', 'quick')  # quick, standard, deep
-    
-    if not target_url:
-        return jsonify({
-            'success': False,
-            'error': 'URL is required'
-        }), 400
-    
-    try:
-        print(f"[*] Scanning {target_url}...")
-        
-        results = {
-            'url': target_url,
-            'scan_time': datetime.now().isoformat(),
-            'findings': []
-        }
-        
-        # Basic security headers check
-        headers_result = check_security_headers(target_url)
-        if headers_result:
-            results['findings'].append(headers_result)
-        
-        # SQL injection quick test
-        sql_result = quick_sql_test(target_url)
-        if sql_result:
-            results['findings'].append(sql_result)
-        
-        # XSS quick test
-        xss_result = quick_xss_test(target_url)
-        if xss_result:
-            results['findings'].append(xss_result)
-        
-        # SSL/TLS check
-        ssl_result = check_ssl(target_url)
-        if ssl_result:
-            results['findings'].append(ssl_result)
-        
-        return jsonify({
-            'success': True,
-            'results': results,
-            'total_findings': len(results['findings'])
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+# ============================================================================
+# VULNERABILITY DETECTION FUNCTIONS
+# ============================================================================
 
 def check_security_headers(url):
-    """Check for missing security headers"""
-    
+    """Check for missing CRITICAL security headers"""
     try:
-        response = requests.get(url, timeout=10, verify=False)
+        response = requests.get(url, timeout=10, verify=False, allow_redirects=True)
         headers = response.headers
         
-        missing_headers = []
+        missing_critical = []
+        missing_important = []
         
-        if 'X-Frame-Options' not in headers:
-            missing_headers.append('X-Frame-Options')
+        # CRITICAL headers
+        if 'Strict-Transport-Security' not in headers and url.startswith('https://'):
+            missing_critical.append('Strict-Transport-Security (HSTS)')
+        
+        # IMPORTANT headers
+        if 'X-Frame-Options' not in headers and 'Content-Security-Policy' not in headers:
+            missing_important.append('X-Frame-Options (Clickjacking protection)')
+        
         if 'X-Content-Type-Options' not in headers:
-            missing_headers.append('X-Content-Type-Options')
-        if 'Strict-Transport-Security' not in headers:
-            missing_headers.append('Strict-Transport-Security')
-        if 'Content-Security-Policy' not in headers:
-            missing_headers.append('Content-Security-Policy')
+            missing_important.append('X-Content-Type-Options (MIME sniffing)')
         
-        if missing_headers:
+        # Only report if critical OR multiple important missing
+        if missing_critical:
+            return {
+                'type': 'Missing Critical Security Headers',
+                'severity': 'high',
+                'details': f"Missing: {', '.join(missing_critical)}. This leaves your site vulnerable to downgrade attacks.",
+                'recommendation': 'Add Strict-Transport-Security header to enforce HTTPS',
+                'impact': 'Users can be redirected to insecure HTTP versions, allowing man-in-the-middle attacks'
+            }
+        elif len(missing_important) >= 3:
             return {
                 'type': 'Missing Security Headers',
                 'severity': 'medium',
-                'details': f"Missing headers: {', '.join(missing_headers)}",
-                'recommendation': 'Implement security headers to prevent common attacks'
+                'details': f"Missing {len(missing_important)} security headers: {', '.join(missing_important)}",
+                'recommendation': 'Add these headers to improve security',
+                'impact': 'More vulnerable to clickjacking and MIME-type attacks'
             }
         
         return None
         
-    except:
+    except requests.exceptions.Timeout:
+        return {
+            'type': 'Connection Timeout',
+            'severity': 'high',
+            'details': 'Server did not respond within 10 seconds',
+            'recommendation': 'Check if server is online'
+        }
+    
+    except requests.exceptions.ConnectionError:
+        return {
+            'type': 'Connection Failed',
+            'severity': 'critical',
+            'details': 'Cannot connect to server',
+            'recommendation': 'Verify URL is correct'
+        }
+    
+    except Exception as e:
         return None
+
 
 def quick_sql_test(url):
     """Quick SQL injection test"""
-    
     try:
-        # Test with simple SQL payload
         test_payload = "'"
-        test_url = f"{url}?test={test_payload}"
         
-        response = requests.get(test_url, timeout=10)
+        test_urls = [
+            f"{url}?id={test_payload}",
+            f"{url}?page={test_payload}",
+            f"{url}?search={test_payload}"
+        ]
         
-        # Check for SQL error messages
-        sql_errors = ['sql syntax', 'mysql', 'sqlite', 'postgresql', 'ora-', 'syntax error']
-        
-        for error in sql_errors:
-            if error in response.text.lower():
-                return {
-                    'type': 'Possible SQL Injection',
-                    'severity': 'high',
-                    'details': 'SQL error message detected in response',
-                    'recommendation': 'Use parameterized queries and input validation'
-                }
+        for test_url in test_urls:
+            try:
+                response = requests.get(test_url, timeout=10, verify=False)
+                
+                sql_errors = [
+                    'sql syntax',
+                    'mysql',
+                    'sqlite',
+                    'postgresql',
+                    'ora-',
+                    'syntax error',
+                    'unclosed quotation'
+                ]
+                
+                for error in sql_errors:
+                    if error in response.text.lower():
+                        return {
+                            'type': 'Possible SQL Injection',
+                            'severity': 'critical',
+                            'details': 'SQL error message detected - database queries may be vulnerable to injection attacks',
+                            'recommendation': 'URGENT: Use parameterized queries (prepared statements) immediately',
+                            'impact': 'Attackers can steal ALL database data, delete records, or take complete control',
+                            'tested_parameter': test_url.split('?')[1].split('=')[0] if '?' in test_url else 'unknown'
+                        }
+            except:
+                continue
         
         return None
         
-    except:
+    except Exception as e:
         return None
+
 
 def quick_xss_test(url):
     """Quick XSS test"""
-    
     try:
-        test_payload = "<script>alert(1)</script>"
-        test_url = f"{url}?test={test_payload}"
+        test_payload = "<script>alert('XSS')</script>"
         
-        response = requests.get(test_url, timeout=10)
+        test_urls = [
+            f"{url}?search={test_payload}",
+            f"{url}?q={test_payload}",
+            f"{url}?name={test_payload}"
+        ]
         
-        if test_payload in response.text:
-            return {
-                'type': 'Possible XSS Vulnerability',
-                'severity': 'high',
-                'details': 'Unescaped user input detected in response',
-                'recommendation': 'Implement output encoding and Content Security Policy'
-            }
+        for test_url in test_urls:
+            try:
+                response = requests.get(test_url, timeout=10, verify=False)
+                
+                if test_payload in response.text or '<script>' in response.text:
+                    return {
+                        'type': 'Possible XSS Vulnerability',
+                        'severity': 'high',
+                        'details': 'Unescaped user input detected - malicious JavaScript could be injected',
+                        'recommendation': 'Implement output encoding (HTML entity encoding) and Content Security Policy',
+                        'impact': 'Attackers can steal user sessions, redirect to phishing sites, or steal sensitive data',
+                        'tested_parameter': test_url.split('?')[1].split('=')[0] if '?' in test_url else 'unknown'
+                    }
+            except:
+                continue
         
         return None
         
-    except:
+    except Exception as e:
         return None
+
 
 def check_ssl(url):
     """Check SSL/TLS configuration"""
-    
     try:
         if not url.startswith('https://'):
             return {
-                'type': 'No HTTPS',
-                'severity': 'high',
-                'details': 'Website is not using HTTPS encryption',
-                'recommendation': 'Implement SSL/TLS certificate and redirect HTTP to HTTPS'
+                'type': 'No HTTPS Encryption',
+                'severity': 'critical',
+                'details': 'Website not using HTTPS - ALL data transmitted in plain text',
+                'recommendation': 'Install SSL/TLS certificate immediately and redirect HTTP to HTTPS',
+                'impact': 'Passwords, credit cards, and all sensitive data can be intercepted by anyone on the network'
             }
         
-        # Could add more detailed SSL checks here
+        try:
+            response = requests.get(url, timeout=10, verify=True)
+            return None
+        except requests.exceptions.SSLError:
+            return {
+                'type': 'Invalid SSL Certificate',
+                'severity': 'high',
+                'details': 'SSL certificate is invalid, expired, or self-signed',
+                'recommendation': 'Install valid SSL certificate from trusted Certificate Authority',
+                'impact': 'Users see security warnings and may not trust your site'
+            }
+        
+    except Exception as e:
         return None
-        
-    except:
-        return None
-    
-def generate_human_explanation(cve_id, vuln_row, prediction, base_value, top_features):
-    """
-    Generate plain English explanation of vulnerability risk
-    """
-    
-    cvss = float(vuln_row['cvss_base_score'])
-    exploit_available = bool(vuln_row.get('exploit_available', 0))
-    days_old = int(vuln_row.get('days_since_disclosure', 0))
-    public_facing = bool(vuln_row.get('public_facing', 0))
-    
-    # Determine risk level
-    if prediction >= 9.0:
-        risk_level = "CRITICAL"
-        risk_emoji = "🔴"
-    elif prediction >= 7.0:
-        risk_level = "HIGH"
-        risk_emoji = "🟠"
-    elif prediction >= 4.0:
-        risk_level = "MEDIUM"
-        risk_emoji = "🟡"
-    else:
-        risk_level = "LOW"
-        risk_emoji = "🟢"
-    
-    explanation = {
-        'summary': f"{risk_emoji} This vulnerability has a **{risk_level}** risk score of **{prediction:.1f}/10**",
-        'why_this_score': [],
-        'vulnerability_type': '',
-        'attack_scenario': '',
-        'how_to_fix': []
-    }
-    
-    # Analyze top features to understand WHY
-    reasons = []
-    
-    for feature in top_features[:5]:  # Top 5 contributors
-        feat_name = feature['feature']
-        shap_val = feature['shap_value']
-        value = feature['value']
-        
-        if abs(shap_val) < 0.1:  # Skip minor contributors
-            continue
-        
-        # CVSS Score
-        if 'cvss_base_score' in feat_name and shap_val > 0:
-            reasons.append(f"✓ The CVSS base score is **{cvss:.1f}**, indicating {'severe' if cvss >= 7 else 'moderate'} technical severity (+{shap_val:.2f} risk)")
-        
-        # Exploit availability
-        if 'exploit_available' in feat_name:
-            if value > 0 and shap_val > 0:
-                reasons.append(f"⚠️ **Public exploits are available** - attackers can easily exploit this vulnerability (+{shap_val:.2f} risk)")
-            elif value == 0 and shap_val < 0:
-                reasons.append(f"✓ No public exploits available yet, reducing immediate risk ({shap_val:.2f} risk)")
-        
-        # Days since disclosure
-        if 'days_since_disclosure' in feat_name:
-            if days_old < 30 and shap_val > 0:
-                reasons.append(f"⚠️ Recently disclosed (**{days_old} days ago**) - patches may not be widely deployed (+{shap_val:.2f} risk)")
-            elif days_old > 180 and shap_val < 0:
-                reasons.append(f"✓ Disclosed **{days_old} days ago** - most systems likely patched ({shap_val:.2f} risk)")
-        
-        # Public facing
-        if 'public_facing' in feat_name:
-            if value > 0 and shap_val > 0:
-                reasons.append(f"⚠️ **Affects public-facing systems** accessible from the internet (+{shap_val:.2f} risk)")
-            elif value == 0 and shap_val < 0:
-                reasons.append(f"✓ Only affects internal systems, limiting attacker access ({shap_val:.2f} risk)")
-        
-        # Attack vector
-        if 'attack_vector_NETWORK' in feat_name and value > 0:
-            reasons.append(f"⚠️ **Exploitable remotely** over the network (+{shap_val:.2f} risk)")
-        
-        # Privileges required
-        if 'privileges_required_NONE' in feat_name and value > 0:
-            reasons.append(f"⚠️ **No authentication required** - anyone can attempt exploitation (+{shap_val:.2f} risk)")
-        
-        # Impact scores
-        if 'confidentiality_impact_HIGH' in feat_name and value > 0:
-            reasons.append(f"⚠️ **High confidentiality impact** - sensitive data could be exposed (+{shap_val:.2f} risk)")
-        
-        if 'integrity_impact_HIGH' in feat_name and value > 0:
-            reasons.append(f"⚠️ **High integrity impact** - attackers could modify data (+{shap_val:.2f} risk)")
-        
-        if 'availability_impact_HIGH' in feat_name and value > 0:
-            reasons.append(f"⚠️ **High availability impact** - system could be taken offline (+{shap_val:.2f} risk)")
-    
-    explanation['why_this_score'] = reasons if reasons else ["Analysis based on multiple technical factors"]
-    
-    # Determine vulnerability type from CWE
-    cwe_ids = str(vuln_row.get('cwe_ids', '')).upper()
-    
-    if 'CWE-89' in cwe_ids or 'SQL' in vuln_row.get('description', '').upper():
-        explanation['vulnerability_type'] = "SQL Injection"
-        explanation['attack_scenario'] = "An attacker could inject malicious SQL commands into database queries, potentially accessing, modifying, or deleting sensitive data. This could lead to complete database compromise."
-        explanation['how_to_fix'] = [
-            "Use parameterized queries (prepared statements) instead of string concatenation",
-            "Implement input validation and sanitization",
-            "Apply principle of least privilege to database accounts",
-            "Use ORM frameworks that handle SQL safely",
-            "Enable SQL injection detection in WAF (Web Application Firewall)"
-        ]
-    
-    elif 'CWE-79' in cwe_ids or 'XSS' in vuln_row.get('description', '').upper():
-        explanation['vulnerability_type'] = "Cross-Site Scripting (XSS)"
-        explanation['attack_scenario'] = "An attacker could inject malicious JavaScript into web pages, potentially stealing user sessions, credentials, or performing actions on behalf of victims."
-        explanation['how_to_fix'] = [
-            "Encode all user input before displaying it (HTML entity encoding)",
-            "Implement Content Security Policy (CSP) headers",
-            "Use modern frameworks with automatic XSS protection (React, Vue, Angular)",
-            "Validate and sanitize input on both client and server side",
-            "Use HTTPOnly and Secure flags on cookies"
-        ]
-    
-    elif 'CWE-352' in cwe_ids or 'CSRF' in vuln_row.get('description', '').upper():
-        explanation['vulnerability_type'] = "Cross-Site Request Forgery (CSRF)"
-        explanation['attack_scenario'] = "An attacker could trick authenticated users into performing unintended actions (like changing passwords or transferring funds) without their knowledge."
-        explanation['how_to_fix'] = [
-            "Implement anti-CSRF tokens in all state-changing forms",
-            "Use SameSite cookie attribute",
-            "Require re-authentication for sensitive operations",
-            "Validate Origin and Referer headers",
-            "Implement proper session management"
-        ]
-    
-    else:
-        explanation['vulnerability_type'] = "Security Vulnerability"
-        explanation['attack_scenario'] = "This vulnerability could allow attackers to compromise system security through various attack vectors."
-        explanation['how_to_fix'] = [
-            "Apply the latest security patches immediately",
-            "Follow vendor security recommendations",
-            "Implement defense-in-depth security measures",
-            "Monitor systems for signs of exploitation",
-            "Review and update security configurations"
-        ]
-    
-    # Comparison to average
-    deviation = prediction - base_value
-    if abs(deviation) > 1.0:
-        if deviation > 0:
-            explanation['summary'] += f"\n\nThis is **{abs(deviation):.1f} points higher** than the average vulnerability, making it a priority for immediate action."
-        else:
-            explanation['summary'] += f"\n\nThis is **{abs(deviation):.1f} points lower** than the average vulnerability."
-    
-    return explanation
+
 
 if __name__ == '__main__':
     print("\n" + "="*60)
     print("  🔥 GlitchForge Web Dashboard Starting...")
     print("="*60)
     print("\n  Access at: http://localhost:5000")
+    print("\n  Pages:")
+    print("    - / (Home)")
+    print("    - /scan (Vulnerability Scanner)")
+    print("    - /results (Scan Results with AI Explanations)")
+    print("\n  ✨ ML-Enhanced Security Scanning")
+    print("  ✨ SHAP Explainability Built-In")
     print("\n" + "="*60 + "\n")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
