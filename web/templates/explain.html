@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explain - GlitchForge</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo">🔥</span>
+                <h1>GlitchForge</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/scan">Scan</a></li>
+                <li><a href="/explain" class="active">Explain</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="page-header">
+            <h1>💡 SHAP Explanations</h1>
+            <p>Understanding ML predictions with explainable AI</p>
+        </header>
+
+        <section class="explain-selector">
+            <div class="card">
+                <h2>Select Vulnerability</h2>
+                <form id="explain-form" onsubmit="explainVulnerability(event)">
+                    <div class="form-group">
+                        <label for="cve-select">CVE ID:</label>
+                        <select id="cve-select" name="cve_id" required>
+                            <option value="">Loading vulnerabilities...</option>
+                        </select>
+                        <small>Select a vulnerability to see detailed SHAP explanation</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="explain-btn">
+                            🔍 Generate Explanation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="explanation-result" id="explanation-result" style="display: none;">
+            <div class="card">
+                <h2>Prediction Details</h2>
+                <div class="prediction-summary" id="prediction-summary">
+                    <!-- Prediction summary will be inserted here -->
+                </div>
+            </div>
+            <div class="card" id="human-explanation-card" style="display: none;">
+                <h2>📖 What Does This Mean?</h2>
+                <div id="human-explanation">
+                    <!-- Human-readable explanation will be inserted here -->
+                </div>
+            </div>
+            <div class="card">
+                <h2>Feature Contributions</h2>
+                <p class="explanation-text">
+                    These features contributed to the risk prediction. Positive values increase risk, negative values decrease it.
+                </p>
+                <div class="feature-contributions" id="feature-contributions">
+                    <!-- Feature contributions will be inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <section class="global-explanations">
+            <div class="card">
+                <h2>Global Feature Importance</h2>
+                <p class="explanation-text">
+                    These visualizations show which features are most important across all vulnerabilities.
+                </p>
+                <div class="viz-grid">
+                    <div class="viz-card">
+                        <h3>SHAP Summary Plot</h3>
+                        <img src="/api/shap/summary" alt="SHAP Summary" class="viz-image">
+                        <p>Impact of feature values on predictions</p>
+                    </div>
+                    <div class="viz-card">
+                        <h3>Feature Importance Bar Chart</h3>
+                        <img src="/api/shap/bar" alt="SHAP Bar" class="viz-image">
+                        <p>Mean absolute SHAP values</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 GlitchForge - Explainable AI for Cybersecurity</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Load CVE list on page load
+        loadCVEList();
+    </script>
+</body>
+</html>

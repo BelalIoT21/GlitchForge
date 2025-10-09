@@ -116,22 +116,34 @@ print("="*70)
 print("\n[*] Initializing SHAP explainer...")
 
 explainer_obj = VulnerabilityExplainer()
-explainer_obj.load_data(sample_size=50)
-explainer_obj.create_explainer(background_samples=30)
+explainer_obj.load_data(sample_size=100)
+explainer_obj.create_explainer(background_samples=50)
 
-print("\n[*] Calculating SHAP values...")
+print("\n[*] Calculating SHAP values for 100 samples...")
+print("    (This may take 30-60 seconds...)")
 explainer_obj.calculate_shap_values()
 
-print("\n[*] Explaining a high-risk vulnerability...")
+print("\n✓ SHAP values calculated!")
 
-# Find a high-risk vulnerability
-high_risk_idx = samples[samples['cvss_base_score'] >= 7.0].index[0]
-sample_idx = list(explainer_obj.X_sample.index).index(high_risk_idx) if high_risk_idx in explainer_obj.X_sample.index else 0
+print("\n[*] Generating global visualizations...")
 
-explanation = explainer_obj.explain_single_vulnerability(sample_idx)
+# Generate summary plot (beeswarm)
+explainer_obj.plot_summary(max_display=20, save_path='shap_summary.png')
 
-print("\n✓ Explanation complete!")
-print(f"  Generated waterfall plot: shap_waterfall_example_{sample_idx}.png")
+# Generate bar plot (feature importance)
+explainer_obj.plot_bar(max_display=20, save_path='shap_bar.png')
+
+print("\n[*] Getting global feature importance...")
+importance_df = explainer_obj.get_feature_importance()
+
+print("\n[*] Explaining individual vulnerabilities...")
+
+# Explain 3 examples: high, medium, low risk
+for i in [0, 25, 50]:
+    if i < len(explainer_obj.X_sample):
+        explanation = explainer_obj.explain_single_vulnerability(index=i)
+
+print("\n✓ All SHAP explanations generated!")
 
 # ============================================================================
 # PART 4: Summary & Recommendations
