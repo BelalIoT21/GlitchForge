@@ -54,6 +54,8 @@ class GlitchForgeLogger:
         log_dir.mkdir(parents=True, exist_ok=True)
         
         # Console handler with colors
+        # Note: StreamHandler often inherits terminal encoding, but we use an 
+        # explicit formatter with color codes.
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
         console_format = ColoredFormatter(
@@ -65,7 +67,8 @@ class GlitchForgeLogger:
         
         # File handler (detailed logs)
         log_file = log_dir / f'glitchforge_{datetime.now().strftime("%Y%m%d")}.log'
-        file_handler = logging.FileHandler(log_file)
+        # FIX APPLIED HERE: Added encoding='utf-8' to handle Unicode characters (like ✓)
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_format = logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(name)s | %(filename)s:%(lineno)d | %(message)s',
@@ -113,9 +116,11 @@ def get_logger(name: str = "GlitchForge") -> GlitchForgeLogger:
         GlitchForgeLogger instance
     """
     global _logger_instance
+    # Ensure the logger name is correctly passed when creating the initial instance
     if _logger_instance is None:
-        _logger_instance = GlitchForgeLogger(name)
-    return _logger_instance
+        _logger_instance = GlitchForgeLogger(name) 
+    # Always return the logger instance itself, not the container class if a specific name is requested
+    return _logger_instance.logger if name != "GlitchForge" else _logger_instance.logger
 
 
 if __name__ == "__main__":
@@ -123,7 +128,7 @@ if __name__ == "__main__":
     logger = get_logger("TestLogger")
     
     logger.debug("This is a debug message")
-    logger.info("This is an info message")
+    logger.info("This is an info message with a Unicode checkmark: ✓")
     logger.warning("This is a warning message")
     logger.error("This is an error message")
     logger.critical("This is a critical message")
