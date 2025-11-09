@@ -3,17 +3,24 @@ GlitchForge Configuration
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Project paths
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / 'data'
 RAW_DATA_DIR = DATA_DIR / 'raw'
 PROCESSED_DATA_DIR = DATA_DIR / 'processed'
-MODELS_DIR = DATA_DIR / 'models'
+MODELS_DIR = BASE_DIR / 'models'
 
 # Create directories if they don't exist
 for directory in [DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
+
+# NVD API Key (standalone variable for stage2_train.py)
+NVD_API_KEY = os.getenv('NVD_API_KEY')
 
 # DVWA Configuration
 DVWA_CONFIG = {
@@ -100,5 +107,5 @@ NVD_CONFIG = {
     'cwe_filters': ['CWE-89', 'CWE-79', 'CWE-352'],  # SQL, XSS, CSRF
     'start_year': 2023,
     'end_year': 2024,
-    'api_key': 'd34953fb-9354-4924-a975-09db76588fce'  # Your NVD API key
+    'api_key': os.getenv('NVD_API_KEY')
 }
