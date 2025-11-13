@@ -1,11 +1,10 @@
 """
-Stage 2 Main - ML Model Development
-Orchestrates the complete ML pipeline:
-1. Collect NVD data (15,000 CVEs)
-2. Engineer features
-3. Train Random Forest
-4. Train Neural Network
-5. Evaluate and compare models
+GlitchForge Stage 2: Master Script
+Student: U2687294 - Bilal Almshmesh
+Supervisor: Dr. Halima Kure
+
+RUNS THE COMPLETE STAGE 2 ML PIPELINE (DATA PREP, TRAINING, EVALUATION)
+This script orchestrates the complete machine learning model development for predicting vulnerability risk.
 """
 
 import logging
