@@ -1,5 +1,5 @@
 """
-GlitchForge XSS Scanner
+GlitchForge XSS Scanner - Stage 1
 Detects Cross-Site Scripting (XSS) vulnerabilities
 """
 import re

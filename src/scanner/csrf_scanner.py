@@ -1,5 +1,5 @@
 """
-GlitchForge CSRF Scanner
+GlitchForge CSRF Scanner - Stage 1
 Detects Cross-Site Request Forgery (CSRF) vulnerabilities
 """
 import re

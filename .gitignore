@@ -1,11 +1,12 @@
-# GlitchForge .gitignore
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -22,89 +23,42 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv
+# Jupyter Notebook
+.ipynb_checkpoints
 
-# IDEs
-.vscode/
+# PyCharm
 .idea/
-*.swp
-*.swo
-*~
-.DS_Store
 
-# Jupyter Notebooks
-.ipynb_checkpoints/
-*.ipynb_checkpoints
+# VS Code
+.vscode/
 
-# Model files (large binary files)
+# Data files (too large for git)
+data/raw/*.json
+data/raw/*.csv
 *.pkl
 *.h5
-*.hdf5
-*.pb
-*.pth
-*.onnx
+*.npy
+
+# Models (too large)
 models/*.pkl
 models/*.h5
 
-# Data files
-data/raw/*.csv
-data/raw/*.json
-data/processed/*.csv
-data/processed/*.json
-*.db
-*.sqlite
-*.sqlite3
+# Outputs
+outputs/plots/*.png
+outputs/explanations/*.npy
 
 # Logs
-logs/
 *.log
+logs/
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Test coverage
-.coverage
-htmlcov/
-.pytest_cache/
-.tox/
-
-# Scan results
-*_scan_*.json
-*_scan_*.html
-*_scan_*.csv
-scan_results/
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-# OS files
-Thumbs.db
+# OS
 .DS_Store
+Thumbs.db
 
-# Documentation builds
-docs/_build/
-site/
+# Sensitive
+.env
+config/secrets.py
 
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Sensitive data (never commit)
-config_local.py
-secrets.py
-*.key
-*.pem
-credentials.json
-
-# NVD data cache
-.nvd_cache/
-nvd_cache/
+# Dissertation drafts (keep final only)
+docs/dissertation/*_draft*.docx
+docs/dissertation/*_v*.docx

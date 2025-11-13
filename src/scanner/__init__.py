@@ -1,5 +1,5 @@
 """
-GlitchForge Scanner Package
+GlitchForge Scanner Package - Stage 1
 Vulnerability detection modules for SQL Injection, XSS, and CSRF
 """
 from .base_scanner import BaseScanner

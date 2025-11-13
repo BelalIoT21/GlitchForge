@@ -1,5 +1,5 @@
 """
-GlitchForge Base Scanner
+GlitchForge Base Scanner - Stage 1
 Abstract base class for all vulnerability scanners
 """
 from abc import ABC, abstractmethod

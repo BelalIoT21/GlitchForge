@@ -1,5 +1,5 @@
 """
-GlitchForge Main Scanner
+GlitchForge Main Scanner - Stage 1
 Orchestrates all vulnerability scanners (SQL Injection, XSS, CSRF)
 """
 import argparse

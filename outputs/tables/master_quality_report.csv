@@ -1,0 +1,9 @@
+method,metric,value
+SHAP-RF,fidelity_mae,2.7755575615628914e-16
+SHAP-RF,consistency_mean_sim,-0.16631676879893323
+SHAP-NN,fidelity_mae,16.11809539794926
+SHAP-NN,consistency_mean_sim,1.0
+LIME-RF,fidelity_r2,0.6419480275588534
+LIME-RF,consistency_mean_sim,0.9489746278766418
+LIME-NN,fidelity_r2,0.47822519443302786
+LIME-NN,consistency_mean_sim,0.8980326498426118

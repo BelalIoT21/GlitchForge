@@ -1,0 +1,6 @@
+cvss_base_score,cvss_v3_score,severity_score,exploitability_score,impact_score,access_complexity,complexity_low,authentication_required,requires_auth,access_vector,network_accessible,confidentiality_impact,integrity_impact,availability_impact,published_year,modified_year,vulnerability_age,reference_count,cpe_count,exploit_available,is_public_exploit,has_patch,has_known_exploited,temporal_cvss_score,epss_score,vendor_count,product_count,cwe_count,remediation_level,report_confidence
+7.5,0,0,10.0,6.4,1,1,0,0,1,1,0,0,0,1998,2025,26,2,0,0,0,0,0,0.0,0.5174155971639072,1,1,1,2,1
+0.0,0,0,10.0,0.0,1,1,0,0,1,1,0,0,0,1997,2025,27,3,0,0,0,0,0,0.0,0.35071913465579874,1,1,1,1,2
+0.0,0,0,0.0,0.0,1,1,0,0,1,1,0,0,0,1996,2023,28,0,0,0,0,0,0,0.0,0.6466265816454199,1,1,0,2,3
+0.0,0,0,10.0,0.0,1,1,0,0,1,1,0,0,0,1997,2025,27,2,0,0,0,0,0,0.0,0.22076771174192655,1,1,1,0,1
+7.5,0,0,10.0,6.4,1,1,0,0,1,1,0,0,0,1997,2025,27,2,0,0,0,0,0,0.0,0.9502902986304309,1,1,1,1,0

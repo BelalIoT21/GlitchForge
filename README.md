@@ -32,22 +32,47 @@ GlitchForge combines traditional vulnerability scanning techniques with machine 
 # Clone the repository
 git clone https://github.com/yourusername/GlitchForge.git
 
-# Install dependencies (TBD)
+## Quick Start
+```bash
+# Clone/download project
+cd GlitchForge
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run vulnerability scanner (Stage 1)
+python -m src.stage1_scanner.sql_injection --target http://dvwa.local
+
+# Train models (Stage 2)
+python scripts/train_all_models.py
+
+# Generate explanations (Stage 3)
+python scripts/generate_all_explanations.py
+
+# Run dashboard (Stage 4)
+python -m src.stage4_dashboard.app
+
+# Run full evaluation (Stage 5)
+python -m src.stage5_evaluation.run_tests
 ```
 
-## Timeline
+## Project Structure
 
-- **Oct 2025**: Literature review and proposal
-- **Nov-Dec 2025**: Core scanner development
-- **Jan-Feb 2026**: ML model training and integration
-- **Mar-Apr 2026**: Testing and evaluation
-- **May 2026**: Final dissertation submission
+See [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)
 
-## Author
-Belal Almshmesh (U2687294)
-University of East London
-Supervised by: Dr Halima Kure
+## Stages
+
+- **Stage 1**: Vulnerability Scanner (SQL, XSS, CSRF)
+- **Stage 2**: ML Models (Random Forest, Neural Network)
+- **Stage 3**: XAI Integration (SHAP, LIME)
+- **Stage 4**: Web Dashboard (Flask)
+- **Stage 5**: Evaluation & Testing
+
+## Requirements
+
+- Python 3.12+
+- See `requirements.txt` for full dependencies
 
 ## License
-TBD
+
+Academic project for educational purposes.

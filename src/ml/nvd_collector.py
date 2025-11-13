@@ -1,5 +1,5 @@
 """
-NVD Data Collector - Stage 2 (FIXED FOR API v2.0)
+NVD Data Collector - Stage 2
 Collects vulnerability data from National Vulnerability Database API v2.0
 Target: 15,000 CVE records from 2018-2024
 """

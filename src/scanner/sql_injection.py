@@ -1,5 +1,5 @@
 """
-GlitchForge SQL Injection Scanner
+GlitchForge SQL Injection Scanner - Stage 1
 Detects SQL Injection vulnerabilities using multiple techniques
 """
 import re
