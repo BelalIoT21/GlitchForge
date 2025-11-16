@@ -20,6 +20,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import pickle
+import joblib
 import shap
 from tensorflow import keras
 
@@ -44,7 +45,7 @@ logger.propagate = False # Stop duplicate logging
 
 # TITLE HEADER
 logger.info("\n" + "="*70)
-logger.info("🤖 GLITCHFORGE PROJECT: STAGE 3 XAI ANALYSIS")
+logger.info("GLITCHFORGE PROJECT: STAGE 3 XAI ANALYSIS")
 logger.info("="*70)
 
 # -----------------------------------------------------------------
@@ -97,9 +98,8 @@ def load_stage2_data():
     
     # Load models
     logger.info("\n1. Loading models...")
-    
-    with open(Config.RF_MODEL_PATH, 'rb') as f:
-        rf_model = pickle.load(f)
+
+    rf_model = joblib.load(Config.RF_MODEL_PATH)
     logger.info(f"✓ Random Forest: {Config.RF_MODEL_PATH}")
     
     try:

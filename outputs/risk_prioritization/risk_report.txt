@@ -2,111 +2,111 @@
 GLITCHFORGE RISK PRIORITIZATION REPORT
 ======================================================================
 
-Generated: 2025-11-13 10:53:34
+Generated: 2025-11-16 05:25:04
 
 SUMMARY
 ----------------------------------------------------------------------
-Total Vulnerabilities: 22
-Average Risk Score: 60.41/100
-Median Risk Score: 76.74/100
-Model Agreement Rate: 50.0%
-Average Confidence: 43.3%
+Total Vulnerabilities: 12,750
+Average Risk Score: 32.86/100
+Median Risk Score: 32.71/100
+Model Agreement Rate: 100.0%
+Average Confidence: 96.1%
 
 Risk Level Distribution:
-  Critical: 3 (13.6%)
-  High: 11 (50.0%)
-  Medium: 2 (9.1%)
-  Low: 2 (9.1%)
-  Informational: 4 (18.2%)
+  Critical: 0 (0.0%)
+  High: 0 (0.0%)
+  Medium: 57 (0.4%)
+  Low: 12,551 (98.4%)
+  Informational: 142 (1.1%)
 
 Remediation Priority Distribution:
-  Immediate (0-24 hours): 3 (13.6%)
-  Urgent (1-7 days): 11 (50.0%)
-  Scheduled (1-4 weeks): 2 (9.1%)
-  Routine (1-3 months): 2 (9.1%)
-  Monitor Only: 4 (18.2%)
+  Immediate (0-24 hours): 0 (0.0%)
+  Urgent (1-7 days): 0 (0.0%)
+  Scheduled (1-4 weeks): 57 (0.4%)
+  Routine (1-3 months): 12,551 (98.4%)
+  Monitor Only: 142 (1.1%)
 
 
 TOP 20 CRITICAL VULNERABILITIES
 ----------------------------------------------------------------------
 
-Rank #1: Critical - Score: 86.3/100
-  ID: CVE-00016
-  Risk Level: Critical (86.3/100) | Key Factors: High exploitability (10.0) | Both ML models agree: Low risk (Conf: 46%) | Action: Immediate (0-24 hours)
+Rank #1: Medium - Score: 51.5/100
+  ID: CVE-05053
+  Risk Level: Medium (51.5/100) | Key Factors: Critical CVSS score (10.0), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #2: Critical - Score: 86.2/100
-  ID: CVE-00000
-  Risk Level: Critical (86.2/100) | Key Factors: High exploitability (10.0) | Both ML models agree: Low risk (Conf: 45%) | Action: Immediate (0-24 hours)
+Rank #2: Medium - Score: 50.5/100
+  ID: CVE-00805
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #3: Critical - Score: 85.9/100
-  ID: CVE-00013
-  Risk Level: Critical (85.9/100) | Key Factors: High exploitability (10.0) | Both ML models agree: Low risk (Conf: 41%) | Action: Immediate (0-24 hours)
+Rank #3: Medium - Score: 50.5/100
+  ID: CVE-01303
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #4: High - Score: 79.6/100
-  ID: CVE-00009
-  Risk Level: High (79.6/100) | Key Factors: Critical CVSS score (10.0), High exploitability (10.0), Critical impact (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 48%) | Action: Urgent (1-7 days)
+Rank #4: Medium - Score: 50.5/100
+  ID: CVE-01463
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #5: High - Score: 79.2/100
-  ID: CVE-00010
-  Risk Level: High (79.2/100) | Key Factors: Critical CVSS score (10.0), High exploitability (10.0), Critical impact (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 46%) | Action: Urgent (1-7 days)
+Rank #5: Medium - Score: 50.5/100
+  ID: CVE-03028
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #6: High - Score: 79.1/100
-  ID: CVE-00004
-  Risk Level: High (79.1/100) | Key Factors: High CVSS score (7.5), High exploitability (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 45%) | Action: Urgent (1-7 days)
+Rank #6: Medium - Score: 50.5/100
+  ID: CVE-03059
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #7: High - Score: 79.0/100
-  ID: CVE-00015
-  Risk Level: High (79.0/100) | Key Factors: High CVSS score (7.5), High exploitability (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 45%) | Action: Urgent (1-7 days)
+Rank #7: Medium - Score: 50.5/100
+  ID: CVE-03105
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #8: High - Score: 78.3/100
-  ID: CVE-00011
-  Risk Level: High (78.3/100) | Key Factors: High CVSS score (7.5), High exploitability (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 42%) | Action: Urgent (1-7 days)
+Rank #8: Medium - Score: 50.5/100
+  ID: CVE-03232
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #9: High - Score: 78.1/100
-  ID: CVE-00014
-  Risk Level: High (78.1/100) | Key Factors: High CVSS score (7.5), High exploitability (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 41%) | Action: Urgent (1-7 days)
+Rank #9: Medium - Score: 50.5/100
+  ID: CVE-03289
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #10: High - Score: 77.8/100
-  ID: CVE-00021
-  Risk Level: High (77.8/100) | Key Factors: High CVSS score (7.5), High exploitability (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 39%) | Action: Urgent (1-7 days)
+Rank #10: Medium - Score: 50.5/100
+  ID: CVE-03322
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #11: High - Score: 77.5/100
-  ID: CVE-00017
-  Risk Level: High (77.5/100) | Key Factors: High CVSS score (7.5), High exploitability (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 38%) | Action: Urgent (1-7 days)
+Rank #11: Medium - Score: 50.5/100
+  ID: CVE-03466
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #12: High - Score: 76.0/100
-  ID: CVE-00003
-  Risk Level: High (76.0/100) | Key Factors: High CVSS score (7.2), High exploitability (3.9), Critical impact (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 45%) | Action: Urgent (1-7 days)
+Rank #12: Medium - Score: 50.5/100
+  ID: CVE-03611
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #13: High - Score: 75.9/100
-  ID: CVE-00012
-  Risk Level: High (75.9/100) | Key Factors: High CVSS score (7.2), High exploitability (3.9), Critical impact (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 45%) | Action: Urgent (1-7 days)
+Rank #13: Medium - Score: 50.5/100
+  ID: CVE-03860
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #14: High - Score: 75.8/100
-  ID: CVE-00001
-  Risk Level: High (75.8/100) | Key Factors: High CVSS score (7.2), High exploitability (3.9), Critical impact (10.0) | Models disagree: RF=Medium, NN=Low (Conf: 45%) | Action: Urgent (1-7 days)
+Rank #14: Medium - Score: 50.5/100
+  ID: CVE-03957
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #15: Medium - Score: 66.9/100
-  ID: CVE-00018
-  Risk Level: Medium (66.9/100) | Key Factors: High exploitability (10.0) | Both ML models agree: Low risk (Conf: 38%) | Action: Scheduled (1-4 weeks)
+Rank #15: Medium - Score: 50.5/100
+  ID: CVE-04121
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #16: Medium - Score: 66.7/100
-  ID: CVE-00020
-  Risk Level: Medium (66.7/100) | Key Factors: High exploitability (10.0) | Both ML models agree: Low risk (Conf: 35%) | Action: Scheduled (1-4 weeks)
+Rank #16: Medium - Score: 50.5/100
+  ID: CVE-04139
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #17: Low - Score: 40.5/100
-  ID: CVE-00002
-  Risk Level: Low (40.5/100) | Key Factors: High exploitability (3.9) | Both ML models agree: Low risk (Conf: 45%) | Action: Routine (1-3 months)
+Rank #17: Medium - Score: 50.5/100
+  ID: CVE-04235
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #18: Low - Score: 40.3/100
-  ID: CVE-00005
-  Risk Level: Low (40.3/100) | Key Factors: High exploitability (3.9) | Both ML models agree: Low risk (Conf: 41%) | Action: Routine (1-3 months)
+Rank #18: Medium - Score: 50.5/100
+  ID: CVE-04239
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #19: Informational - Score: 0.0/100
-  ID: CVE-00006
-  Risk Level: Informational (0.0/100) | Both ML models agree: Low risk (Conf: 44%) | Action: Monitor Only
+Rank #19: Medium - Score: 50.5/100
+  ID: CVE-04828
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 
-Rank #20: Informational - Score: 0.0/100
-  ID: CVE-00007
-  Risk Level: Informational (0.0/100) | Both ML models agree: Low risk (Conf: 48%) | Action: Monitor Only
+Rank #20: Medium - Score: 50.5/100
+  ID: CVE-05170
+  Risk Level: Medium (50.5/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
 

@@ -26,8 +26,8 @@ class Config:
     EXPLANATIONS_DIR = OUTPUTS_DIR / "explanations"
     
     # Model paths
-    RF_MODEL_PATH = MODELS_DIR / "random_forest_model.pkl"
-    NN_MODEL_PATH = MODELS_DIR / "neural_network_model.h5"
+    RF_MODEL_PATH = MODELS_DIR / "random_forest.pkl"
+    NN_MODEL_PATH = MODELS_DIR / "neural_network.h5"
     
     # Data paths
     X_TRAIN_PATH = PROCESSED_DATA_DIR / "X_train.csv"
@@ -81,5 +81,5 @@ class Config:
         
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
-        
-        print("✓ All directories created successfully")
+
+        print("All directories created successfully")

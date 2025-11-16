@@ -18,13 +18,12 @@ logging.getLogger('absl').setLevel(logging.ERROR)
 import sys
 from pathlib import Path
 # Insert root project path to allow imports from src/utils and src/prioritization
-# NOTE: This line assumes this file is outside the src directory in the project root.
-# Adjust the path as needed based on your actual project structure.
-sys.path.insert(0, str(Path(__file__).parent.parent)) 
+sys.path.insert(0, str(Path(__file__).parent)) 
 
 import pandas as pd
 import numpy as np
 import pickle
+import joblib
 from datetime import datetime
 from typing import Dict, List, Tuple
 
@@ -58,35 +57,11 @@ def main():
     logger.info("="*70)
     logger.info("GLITCHFORGE STAGE 4: RISK PRIORITIZATION")
     logger.info("="*70)
-    
-    # Create output directory
-    # NOTE: Assuming Config is properly defined in src/utils/config.py
-    # Config.create_directories() 
-    # output_dir = Config.OUTPUTS_DIR / "risk_prioritization"
-    # output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Placeholder for Config and directories since they are missing here
-    class MockConfig:
-        OUTPUTS_DIR = Path("./outputs")
-        TABLES_DIR = Path("./outputs/tables")
-        PROCESSED_DATA_DIR = Path("./data/processed")
-        RF_MODEL_PATH = Path("./models/rf_model.pkl")
-        NN_MODEL_PATH = Path("./models/nn_model.h5")
-        X_TRAIN_PATH = Path("./data/processed/X_train.csv")
-        X_TEST_PATH = Path("./data/processed/X_test.csv")
-        Y_TRAIN_PATH = Path("./data/processed/y_train.csv")
-        Y_TEST_PATH = Path("./data/processed/y_test.csv")
-        
-        @staticmethod
-        def create_directories():
-            MockConfig.OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
-            (MockConfig.OUTPUTS_DIR / "risk_prioritization").mkdir(parents=True, exist_ok=True)
-            MockConfig.TABLES_DIR.mkdir(parents=True, exist_ok=True)
-            MockConfig.PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Use the mock or actual Config
-    Config.create_directories() # Ensure directories exist
+    # Create output directory
+    Config.create_directories()
     output_dir = Config.OUTPUTS_DIR / "risk_prioritization"
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     # Step 1: Load data from Stage 2
     # ... (rest of the original main function logic, using the imported classes)
@@ -96,8 +71,11 @@ def main():
     try:
         # Load models
         logger.info("  Loading models...")
-        with open(Config.RF_MODEL_PATH, 'rb') as f:
-            rf_model = pickle.load(f)
+        try:
+            rf_model = joblib.load(Config.RF_MODEL_PATH)
+        except:
+            with open(Config.RF_MODEL_PATH, 'rb') as f:
+                rf_model = pickle.load(f, encoding='latin1')
         
         if keras:
             nn_model = keras.models.load_model(Config.NN_MODEL_PATH)
@@ -134,10 +112,10 @@ def main():
         with open(feature_names_path, 'r') as f:
             feature_names = [line.strip() for line in f.readlines()]
         
-        logger.info(f"\n✓ Loaded: {len(X_full):,} total samples, {len(feature_names)} features")
+        logger.info(f"\nLoaded: {len(X_full):,} total samples, {len(feature_names)} features")
         
     except FileNotFoundError as e:
-        logger.error(f"✗ Failed to load Stage 2 data: {e}")
+        logger.error(f"Failed to load Stage 2 data: {e}")
         logger.error("Please ensure Stage 2 (model training) has been run and paths are correct!")
         return
     except Exception as e:
@@ -146,10 +124,18 @@ def main():
     
     # Step 2: Load SHAP importance from Stage 3
     logger.info("\n[Step 2/6] Loading Stage 3 XAI data...")
-    
+
     try:
-        shap_importance_path = Config.TABLES_DIR / 'shap_importance.csv'
-        shap_importance = pd.read_csv(shap_importance_path)
+        # Try to load SHAP importance from either RF or NN
+        shap_rf_path = Config.TABLES_DIR / 'shap_importance_rf.csv'
+        shap_nn_path = Config.TABLES_DIR / 'shap_importance_nn.csv'
+
+        if shap_rf_path.exists():
+            shap_importance = pd.read_csv(shap_rf_path)
+        elif shap_nn_path.exists():
+            shap_importance = pd.read_csv(shap_nn_path)
+        else:
+            raise FileNotFoundError("No SHAP importance files found")
         
         # Create feature importance dictionary
         feature_importance = dict(zip(
@@ -157,10 +143,10 @@ def main():
             shap_importance['importance']
         ))
         
-        logger.info(f"✓ Loaded SHAP importance for {len(feature_importance)} features")
+        logger.info(f"Loaded SHAP importance for {len(feature_importance)} features")
         
     except FileNotFoundError:
-        logger.warning("⚠ SHAP importance not found, continuing without it")
+        logger.warning("SHAP importance not found, continuing without it")
         feature_importance = {}
     
     # Step 3: Get ML predictions for FULL dataset
@@ -199,7 +185,7 @@ def main():
     agreement = np.mean(rf_predictions == nn_predictions)
     logger.info(f"\n  Model Agreement: {agreement:.1%}")
     
-    logger.info(f"\n✓ Predictions obtained for {len(X_full):,} vulnerabilities")
+    logger.info(f"\nPredictions obtained for {len(X_full):,} vulnerabilities")
     
     # Step 4: Calculate risk scores for ALL vulnerabilities
     logger.info("\n[Step 4/6] Calculating risk scores...")
@@ -258,7 +244,7 @@ def main():
             
             queue_manager.add_vulnerability(risk_score)
     
-    logger.info(f"✓ Calculated risk scores for {len(X_full):,} vulnerabilities")
+    logger.info(f"Calculated risk scores for {len(X_full):,} vulnerabilities")
     
     # Step 5: Sort and analyze
     logger.info("\n[Step 5/6] Sorting and analyzing priority queue...")
@@ -365,7 +351,7 @@ def main():
         level_df = df_queue[df_queue['risk_level'] == level]
         if len(level_df) > 0:
             level_df.to_csv(output_dir / f'{level.lower()}_risk_vulnerabilities.csv', index=False)
-            logger.info(f"    ✓ Saved {level} risk ({len(level_df):,} items)")
+            logger.info(f"    Saved {level} risk ({len(level_df):,} items)")
     
     # Save statistics with evaluation metrics
     stats['evaluation_metrics'] = {
@@ -392,7 +378,7 @@ def main():
         logger.info(f"  {i}. {vuln.vulnerability_id}: {vuln.risk_level.value} ({vuln.final_risk_score:.1f}/100)")
         logger.info(f"     Primary Factors: {', '.join(vuln.primary_factors[:3])}")
     
-    logger.info("\n✓ Ready for Stage 5: Dashboard visualization")
+    logger.info("\nReady for Stage 5: Dashboard visualization")
     logger.info("="*70)
 
 
