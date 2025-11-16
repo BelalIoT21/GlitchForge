@@ -347,13 +347,17 @@ Examples:
     
     # Load configuration
     try:
-        from config import SCANNER_CONFIG
+        from src.utils.config import Config
+        scanner_config = {
+            'timeout': Config.SCANNER_TIMEOUT,
+            'max_retries': Config.SCANNER_MAX_RETRIES,
+            'user_agent': Config.SCANNER_USER_AGENT
+        }
     except ImportError:
         print("Error: config.py not found. Please create configuration file.")
         sys.exit(1)
-    
-    # Initialize scanner
-    scanner = GlitchForgeScanner(SCANNER_CONFIG)
+
+    scanner = GlitchForgeScanner(scanner_config)
     
     # Determine scan types
     scan_types = args.types

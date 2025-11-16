@@ -72,12 +72,12 @@ class SQLInjectionScanner(BaseScanner):
     def get_payloads(self) -> Dict[str, List[str]]:
         """
         Get SQL injection payloads from config
-        
+
         Returns:
             Dictionary of payload categories
         """
-        from config import SQL_PAYLOADS
-        return SQL_PAYLOADS
+        from src.utils.config import Config
+        return Config.SQL_PAYLOADS
     
     def detect_vulnerability(
         self,
@@ -338,10 +338,14 @@ class SQLInjectionScanner(BaseScanner):
 
 
 if __name__ == "__main__":
-    # Test the SQL Injection scanner
-    from config import SCANNER_CONFIG, SQL_PAYLOADS
-    
-    scanner = SQLInjectionScanner(SCANNER_CONFIG)
+    from src.utils.config import Config
+
+    scanner_config = {
+        'timeout': Config.SCANNER_TIMEOUT,
+        'max_retries': Config.SCANNER_MAX_RETRIES,
+        'user_agent': Config.SCANNER_USER_AGENT
+    }
+    scanner = SQLInjectionScanner(scanner_config)
     
     # Test against DVWA (if available)
     test_url = "http://192.168.1.127/DVWA/vulnerabilities/sqli/"

@@ -502,10 +502,14 @@ class CSRFScanner(BaseScanner):
 
 
 if __name__ == "__main__":
-    # Test the CSRF scanner
-    from config import SCANNER_CONFIG
-    
-    scanner = CSRFScanner(SCANNER_CONFIG)
+    from src.utils.config import Config
+
+    scanner_config = {
+        'timeout': Config.SCANNER_TIMEOUT,
+        'max_retries': Config.SCANNER_MAX_RETRIES,
+        'user_agent': Config.SCANNER_USER_AGENT
+    }
+    scanner = CSRFScanner(scanner_config)
     
     # Test against DVWA (if available)
     test_url = "http://192.168.1.127/DVWA/vulnerabilities/csrf/"
