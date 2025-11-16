@@ -14,10 +14,10 @@
     "Routine (1-3 months)": 12551,
     "Monitor Only": 142
   },
-  "average_score": 32.85976988602963,
+  "average_score": 32.859521457668016,
   "median_score": 32.7140625,
   "model_agreement_rate": 1.0,
-  "average_confidence": 0.9606531102431057,
+  "average_confidence": 0.9606186652377661,
   "evaluation_metrics": {
     "rf_accuracy": 0.9733333333333334,
     "nn_accuracy": 0.9733333333333334,

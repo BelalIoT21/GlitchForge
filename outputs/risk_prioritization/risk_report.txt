@@ -2,7 +2,7 @@
 GLITCHFORGE RISK PRIORITIZATION REPORT
 ======================================================================
 
-Generated: 2025-11-16 05:25:04
+Generated: 2025-11-16 14:13:03
 
 SUMMARY
 ----------------------------------------------------------------------
@@ -32,7 +32,7 @@ TOP 20 CRITICAL VULNERABILITIES
 
 Rank #1: Medium - Score: 51.5/100
   ID: CVE-05053
-  Risk Level: Medium (51.5/100) | Key Factors: Critical CVSS score (10.0), Public exploit available | Both ML models agree: Medium risk (Conf: 73%) | Action: Scheduled (1-4 weeks)
+  Risk Level: Medium (51.5/100) | Key Factors: Critical CVSS score (10.0), Public exploit available | Both ML models agree: Medium risk (Conf: 72%) | Action: Scheduled (1-4 weeks)
 
 Rank #2: Medium - Score: 50.5/100
   ID: CVE-00805
