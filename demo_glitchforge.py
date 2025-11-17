@@ -2,7 +2,7 @@
 """
 GlitchForge - Complete Demo Scrip
 ===================================================
-Student: Bilal (U2687294)
+Student: Belal Almshmesh (U2687294)
 Supervisor: Dr. Halima Kure
 University of East London
 
@@ -13,9 +13,9 @@ Stage 3: Explainable AI (SHAP + LIME)
 Stage 4: Risk Prioritization with Explanations
 
 Usage:
-    python demo_glitchforge_FIXED.py --target dvwa
-    python demo_glitchforge_FIXED.py --target testphp
-    python demo_glitchforge_FIXED.py --url http://custom-target.com
+    python demo_glitchforge.py --target dvwa
+    python demo_glitchforge.py --target testphp
+    python demo_glitchforge.py --url http://custom-target.com
 """
 
 import os

@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """
-GlitchForge - OPTIMIZED FAST Engine for Web UI (Stage 5)
-Student: Bilal (U2687294)
+GlitchForge - OPTIMIZED FAST Engine for Web UI (Stage 5) - WITH EXPLANATIONS
+Student: Belal Almshmesh (U2687294)
 Supervisor: Dr. Halima Kure
 University of East London
 
 This is the FAST backend engine for the web dashboard.
 - Models loaded ONCE at startup
 - Quick scanning (reduced payloads)
-- Instant predictions
+- Instant predictions WITH EXPLANATIONS
 - Real-time results
+
+includes explanation text for ALL vulnerabilities
 
 Usage in Stage 5 Web App:
     from glitchforge_engine import GlitchForgeEngine
-    
+    s
     engine = GlitchForgeEngine()  # Load models once
-    results = engine.scan_and_analyze(url)  # Fast scan
+    results = engine.scan_and_analyze(url)  # Fast scan with explanations
 """
 
 import os
@@ -71,7 +73,7 @@ class GlitchForgeEngine:
     Optimized GlitchForge Engine for Web UI
     - Models loaded once at initialization
     - Fast scanning with reduced payloads
-    - Instant predictions
+    - Instant predictions WITH explanations
     """
     
     def __init__(self, models_dir: str = 'models'):
@@ -167,18 +169,119 @@ class GlitchForgeEngine:
             self.logger.error(f"Scan error: {e}")
             return []
     
+    def _generate_prediction_explanation(
+        self,
+        data_row: pd.Series,
+        feature_importance: Dict[str, float],
+        prediction: int,
+        confidence: float
+    ) -> str:
+        """
+        Generate human-readable explanation for a prediction
+        
+        Args:
+            data_row: Row of feature data
+            feature_importance: Dictionary of feature names to importance scores
+            prediction: Risk level prediction (0=Low, 1=Medium, 2=High)
+            confidence: Model confidence score
+            
+        Returns:
+            Human-readable explanation string
+        """
+        risk_names = ['Low', 'Medium', 'High']
+        risk_level = risk_names[prediction]
+        
+        # Get top contributing features
+        if feature_importance:
+            # Get top 5 features by importance
+            top_features = sorted(
+                feature_importance.items(),
+                key=lambda x: abs(x[1]),
+                reverse=True
+            )[:5]
+        else:
+            # Fallback: use common important features
+            top_features = [
+                ('cvss_base_score', 0.35),
+                ('cvss_exploitability_score', 0.25),
+                ('cvss_impact_score', 0.20),
+                ('has_exploit', 0.12),
+                ('age_days', 0.05)
+            ]
+        
+        # Build explanation
+        explanation = f"Classified as {risk_level} risk with {confidence:.0%} confidence. "
+        
+        # Add key factor analysis
+        factors = []
+        
+        # CVSS Base Score
+        cvss_base = data_row.get('cvss_base_score', 0)
+        if cvss_base >= 9.0:
+            factors.append(f"critical CVSS base score ({cvss_base:.1f})")
+        elif cvss_base >= 7.0:
+            factors.append(f"high CVSS base score ({cvss_base:.1f})")
+        elif cvss_base >= 4.0:
+            factors.append(f"moderate CVSS base score ({cvss_base:.1f})")
+        
+        # Exploitability
+        cvss_exploit = data_row.get('cvss_exploitability_score', 0)
+        if cvss_exploit >= 3.5:
+            factors.append(f"high exploitability ({cvss_exploit:.1f})")
+        elif cvss_exploit >= 2.5:
+            factors.append(f"moderate exploitability ({cvss_exploit:.1f})")
+        
+        # Impact
+        cvss_impact = data_row.get('cvss_impact_score', 0)
+        if cvss_impact >= 5.0:
+            factors.append(f"significant impact ({cvss_impact:.1f})")
+        elif cvss_impact >= 3.0:
+            factors.append(f"moderate impact ({cvss_impact:.1f})")
+        
+        # Exploit availability
+        if data_row.get('has_exploit', False):
+            factors.append("active exploit available")
+        
+        # Vulnerability type
+        vuln_type = data_row.get('vuln_type', 'Unknown')
+        if vuln_type == 'SQL Injection':
+            factors.append("SQL injection (critical vulnerability type)")
+        elif vuln_type == 'Cross-Site Scripting (XSS)':
+            factors.append("XSS vulnerability")
+        elif vuln_type == 'Cross-Site Request Forgery (CSRF)':
+            factors.append("CSRF vulnerability")
+        
+        # Age consideration
+        age = data_row.get('age_days', 0)
+        if age > 365:
+            factors.append(f"long-standing vulnerability ({age} days old)")
+        elif age < 30:
+            factors.append("recently discovered")
+        
+        # Combine factors
+        if factors:
+            explanation += "Key factors: " + ", ".join(factors[:4]) + "."
+        
+        # Add top feature contributions
+        if feature_importance:
+            top_3_features = [f"{feat.replace('_', ' ')} ({imp:.2f})" 
+                            for feat, imp in top_features[:3]]
+            explanation += f" Top contributors: {', '.join(top_3_features)}."
+        
+        return explanation
+    
     def predict_risks(
         self,
         vulnerabilities: List[VulnerabilityResult]
     ) -> List[Dict]:
         """
-        Predict risks using pre-loaded models
+        Predict risks using pre-loaded models WITH EXPLANATIONS
         
         Args:
             vulnerabilities: List of vulnerabilities
             
         Returns:
-            List of predictions
+            List of predictions with detailed explanations
         """
         if not vulnerabilities:
             return []
@@ -197,7 +300,14 @@ class GlitchForgeEngine:
         self._last_X_scaled = X_scaled
         self._last_df = df
         
-        # Predict
+        # Get feature importance from Random Forest
+        feature_names = list(X_scaled.columns) if hasattr(X_scaled, 'columns') else []
+        rf_feature_importance = {}
+        if self.rf_model and hasattr(self.rf_model, 'feature_importances_'):
+            importances = self.rf_model.feature_importances_
+            rf_feature_importance = dict(zip(feature_names, importances))
+        
+        # Predict with explanations
         predictions = []
         
         for idx, row in X_scaled.iterrows():
@@ -211,6 +321,23 @@ class GlitchForgeEngine:
             nn_pred = int(np.argmax(nn_proba))
             nn_confidence = float(np.max(nn_proba))
             
+            # Generate explanation for THIS prediction
+            explanation = self._generate_prediction_explanation(
+                df.loc[idx],
+                rf_feature_importance,
+                int(rf_pred),
+                rf_confidence
+            )
+            
+            # Get top 5 most important features for this vulnerability
+            top_features = []
+            if rf_feature_importance:
+                top_features = sorted(
+                    rf_feature_importance.items(),
+                    key=lambda x: abs(x[1]),
+                    reverse=True
+                )[:5]
+            
             pred_record = {
                 'index': idx,
                 'cve_id': df.loc[idx, 'cve_id'],
@@ -221,7 +348,10 @@ class GlitchForgeEngine:
                 'nn_confidence': nn_confidence,
                 'nn_probabilities': nn_proba.tolist(),
                 'model_agreement': rf_pred == nn_pred,
-                'original_data': df.loc[idx].to_dict()
+                'original_data': df.loc[idx].to_dict(),
+                'explanation': explanation,  # ← EXPLANATION ADDED HERE
+                'top_features': top_features,
+                'feature_importance': rf_feature_importance
             }
             
             predictions.append(pred_record)
@@ -236,7 +366,7 @@ class GlitchForgeEngine:
         Prioritize vulnerabilities with risk scoring
         
         Args:
-            predictions: ML predictions
+            predictions: ML predictions with explanations
             
         Returns:
             List of prioritized risk scores
@@ -260,6 +390,10 @@ class GlitchForgeEngine:
                 products_count=data.get('affected_products_count', 1)
             )
             
+            # Use the prediction explanation for the risk score
+            if 'explanation' in pred:
+                risk_score.explanation_text = pred['explanation']
+            
             risk_scores.append(risk_score)
         
         return risk_scores
@@ -269,7 +403,7 @@ class GlitchForgeEngine:
         top_n: int = 5
     ) -> List[Dict]:
         """
-        Generate XAI explanations for top N vulnerabilities (OPTIONAL)
+        Generate XAI explanations for top N vulnerabilities
         Only call this if you need detailed explanations
         
         Args:
@@ -329,14 +463,14 @@ class GlitchForgeEngine:
         scan_types: List[str] = ['sql', 'xss', 'csrf']
     ) -> Dict:
         """
-        Complete scan and analysis pipeline (FAST)
+        Complete scan and analysis pipeline (FAST) WITH EXPLANATIONS
         
         Args:
             url: Target URL
             scan_types: Types of scans
             
         Returns:
-            Complete results dictionary
+            Complete results dictionary with explanations for ALL vulnerabilities
         """
         start_time = time.time()
         
@@ -354,7 +488,7 @@ class GlitchForgeEngine:
                 'message': 'No vulnerabilities found'
             }
         
-        # Stage 2: Predict
+        # Stage 2: Predict (now includes explanations)
         pred_start = time.time()
         predictions = self.predict_risks(vulnerabilities)
         pred_time = time.time() - pred_start
@@ -369,7 +503,7 @@ class GlitchForgeEngine:
         
         total_time = time.time() - start_time
         
-        # Format results for web UI
+        # Format results for web UI (with explanations)
         results = {
             'success': True,
             'url': url,
@@ -440,7 +574,7 @@ class GlitchForgeEngine:
         return pd.DataFrame(data)
     
     def _format_risk_score(self, risk_score: RiskScore) -> Dict:
-        """Format risk score for JSON response"""
+        """Format risk score for JSON response (with explanation)"""
         return {
             'vulnerability_id': risk_score.vulnerability_id,
             'risk_score': round(risk_score.final_risk_score, 2),
@@ -452,7 +586,7 @@ class GlitchForgeEngine:
             'has_exploit': risk_score.has_exploit,
             'model_agreement': risk_score.model_agreement,
             'confidence': round((risk_score.rf_confidence + risk_score.nn_confidence) / 2, 2),
-            'explanation': risk_score.explanation_text,
+            'explanation': risk_score.explanation_text,  # ← EXPLANATION INCLUDED
             'primary_factors': risk_score.primary_factors
         }
     
@@ -494,7 +628,7 @@ class GlitchForgeEngine:
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description='GlitchForge Fast Engine')
+    parser = argparse.ArgumentParser(description='GlitchForge Fast Engine WITH EXPLANATIONS')
     parser.add_argument('--url', required=True, help='URL to scan')
     parser.add_argument('--output', help='Output JSON file')
     
@@ -520,7 +654,11 @@ if __name__ == "__main__":
             json.dump(results, f, indent=2, default=str)
         print(f"\n✓ Results saved to {args.output}")
     
-    # Show top 5
-    print("\nTop 5 Critical Vulnerabilities:")
+    # Show top 5 WITH EXPLANATIONS
+    print("\nTop 5 Critical Vulnerabilities (with explanations):")
     for i, vuln in enumerate(results['risk_scores'][:5], 1):
-        print(f"  [{i}] {vuln['vulnerability_id']} - Risk: {vuln['risk_score']}/100 ({vuln['risk_level']})")
+        print(f"\n[{i}] {vuln['vulnerability_id']}")
+        print(f"    Risk: {vuln['risk_score']}/100 ({vuln['risk_level']})")
+        print(f"    Priority: {vuln['remediation_priority']}")
+        print(f"    Explanation: {vuln['explanation']}")
+        print("    " + "─" * 70)
