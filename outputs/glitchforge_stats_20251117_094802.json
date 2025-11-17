@@ -1,0 +1,21 @@
+{
+  "total_vulnerabilities": 253,
+  "by_risk_level": {
+    "Critical": 78,
+    "High": 170,
+    "Medium": 2,
+    "Low": 3,
+    "Informational": 0
+  },
+  "by_remediation_priority": {
+    "Immediate (0-24 hours)": 78,
+    "Urgent (1-7 days)": 170,
+    "Scheduled (1-4 weeks)": 2,
+    "Routine (1-3 months)": 3,
+    "Monitor Only": 0
+  },
+  "average_score": 84.0646900517559,
+  "median_score": 83.8634488779989,
+  "model_agreement_rate": 0.308300395256917,
+  "average_confidence": 0.8918769667801647
+}

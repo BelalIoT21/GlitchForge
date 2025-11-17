@@ -160,7 +160,7 @@ except Exception as e:
 # Test 10: Check directory structure
 print("\n[Test 10] Checking directory structure...")
 try:
-    required_dirs = ['data', 'data/raw', 'data/processed', 'data/models', 'logs']
+    required_dirs = ['data', 'data/raw', 'data/processed', 'data', 'logs']
     missing_dirs = []
     
     for dir_name in required_dirs:

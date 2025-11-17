@@ -1,0 +1,266 @@
+{
+  "accuracy": 1.0,
+  "precision_weighted": 1.0,
+  "recall_weighted": 1.0,
+  "f1_weighted": 1.0,
+  "precision_macro": 1.0,
+  "recall_macro": 1.0,
+  "f1_macro": 1.0,
+  "classification_report": {
+    "0": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 21.0
+    },
+    "1": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 10220.0
+    },
+    "2": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 212.0
+    },
+    "3": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 47.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 10500.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 10500.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      21,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      10220,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      212,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      47
+    ]
+  ],
+  "validation_metrics": {
+    "accuracy": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0,
+    "f1_weighted": 1.0,
+    "precision_macro": 1.0,
+    "recall_macro": 1.0,
+    "f1_macro": 1.0,
+    "classification_report": {
+      "0": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 4.0
+      },
+      "1": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2190.0
+      },
+      "2": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 46.0
+      },
+      "3": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 10.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2250.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2250.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        4,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        2190,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        46,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        10
+      ]
+    ]
+  },
+  "feature_importance": [
+    {
+      "feature": "exploit_cvss_interaction",
+      "importance": 0.16154942782122225
+    },
+    {
+      "feature": "cvss_severity_encoded",
+      "importance": 0.12276689309152995
+    },
+    {
+      "feature": "cvss_base_score",
+      "importance": 0.11044851667642307
+    },
+    {
+      "feature": "has_exploit",
+      "importance": 0.08078631203390581
+    },
+    {
+      "feature": "total_impact_score",
+      "importance": 0.07054749923118837
+    },
+    {
+      "feature": "attack_vector_score",
+      "importance": 0.06309675970539749
+    },
+    {
+      "feature": "affected_products_count",
+      "importance": 0.04901957571425872
+    },
+    {
+      "feature": "is_high",
+      "importance": 0.04619431191735505
+    },
+    {
+      "feature": "is_medium",
+      "importance": 0.04419868710471214
+    },
+    {
+      "feature": "days_since_modified",
+      "importance": 0.042215096926536896
+    },
+    {
+      "feature": "is_critical",
+      "importance": 0.04067729588646071
+    },
+    {
+      "feature": "cvss_scope_encoded",
+      "importance": 0.03608908405653433
+    },
+    {
+      "feature": "high_exploitability",
+      "importance": 0.02955858921861204
+    },
+    {
+      "feature": "cvss_exploitability_score",
+      "importance": 0.0228177025913145
+    },
+    {
+      "feature": "cvss_impact_score",
+      "importance": 0.016460749415315175
+    },
+    {
+      "feature": "modification_span_days",
+      "importance": 0.015275273642947096
+    },
+    {
+      "feature": "confidentiality_score",
+      "importance": 0.008677856453187568
+    },
+    {
+      "feature": "high_impact",
+      "importance": 0.007875111099428376
+    },
+    {
+      "feature": "availability_score",
+      "importance": 0.00763757262555454
+    },
+    {
+      "feature": "privileges_required_score",
+      "importance": 0.007614672052396487
+    },
+    {
+      "feature": "attack_complexity_score",
+      "importance": 0.005889038283361672
+    },
+    {
+      "feature": "integrity_score",
+      "importance": 0.004979823418406683
+    },
+    {
+      "feature": "age_days",
+      "importance": 0.0025982095604328175
+    },
+    {
+      "feature": "user_interaction_score",
+      "importance": 0.0023699618473002892
+    },
+    {
+      "feature": "multiple_products",
+      "importance": 0.00037185154546726584
+    },
+    {
+      "feature": "single_product",
+      "importance": 0.00015332747915210735
+    },
+    {
+      "feature": "widespread",
+      "importance": 0.00011814924371828698
+    },
+    {
+      "feature": "is_low",
+      "importance": 1.2651357880281731e-05
+    },
+    {
+      "feature": "publish_quarter",
+      "importance": 0.0
+    }
+  ]
+}

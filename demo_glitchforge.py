@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-GlitchForge - Complete Demo Script
+GlitchForge - Complete Demo Scrip
+===================================================
 Student: Bilal (U2687294)
 Supervisor: Dr. Halima Kure
 University of East London
@@ -12,9 +13,9 @@ Stage 3: Explainable AI (SHAP + LIME)
 Stage 4: Risk Prioritization with Explanations
 
 Usage:
-    python demo_glitchforge.py --target dvwa
-    python demo_glitchforge.py --target testphp
-    python demo_glitchforge.py --url http://custom-target.com
+    python demo_glitchforge_FIXED.py --target dvwa
+    python demo_glitchforge_FIXED.py --target testphp
+    python demo_glitchforge_FIXED.py --url http://custom-target.com
 """
 
 import os
@@ -155,6 +156,7 @@ class GlitchForgeDemo:
 ║                                                        ║
 ║      Explainable AI Vulnerability Management           ║
 ║            Complete System Demonstration               ║
+║                     FIXED VERSION                      ║
 ║                                                        ║
 ╚════════════════════════════════════════════════════════╝
 
@@ -420,6 +422,10 @@ University of East London - BSc Computer Science
             # Neural Network prediction
             nn_proba = self.nn_model.predict(np.array([row]), verbose=0)[0]
             nn_pred = int(np.argmax(nn_proba))
+            
+            # FIX #2: Ensure NN prediction is within valid range [0, 1, 2]
+            nn_pred = max(0, min(2, nn_pred))
+            
             nn_confidence = float(np.max(nn_proba))
             
             pred_record = {
@@ -694,15 +700,19 @@ University of East London - BSc Computer Science
             age_days = data.get('age_days', 30)
             products_count = data.get('affected_products_count', 1)
             
+            # FIX #3: Validate predictions before passing to engine
+            rf_pred = max(0, min(2, int(pred['rf_prediction'])))
+            nn_pred = max(0, min(2, int(pred['nn_prediction'])))
+            
             # Calculate risk score
             risk_score = self.prioritization_engine.prioritize_vulnerability(
                 vuln_id=pred['cve_id'],
                 cvss_base=cvss_base,
                 cvss_exploitability=cvss_exploitability,
                 cvss_impact=cvss_impact,
-                rf_prediction=pred['rf_prediction'],
+                rf_prediction=rf_pred,
                 rf_confidence=pred['rf_confidence'],
-                nn_prediction=pred['nn_prediction'],
+                nn_prediction=nn_pred,
                 nn_confidence=pred['nn_confidence'],
                 has_exploit=has_exploit,
                 age_days=age_days,
@@ -892,18 +902,18 @@ University of East London - BSc Computer Science
 def main():
     """Command-line interface"""
     parser = argparse.ArgumentParser(
-        description='GlitchForge Complete Demo - All 4 Stages',
+        description='GlitchForge Complete Demo - All 4 Stages (FIXED)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Scan DVWA (local installation required)
-  python demo_glitchforge.py --target dvwa
+  python demo_glitchforge_FIXED.py --target dvwa
   
   # Scan TestPHP (public test site)
-  python demo_glitchforge.py --target testphp
+  python demo_glitchforge_FIXED.py --target testphp
   
   # Scan custom URL
-  python demo_glitchforge.py --url http://example.com/vulnerable.php
+  python demo_glitchforge_FIXED.py --url http://example.com/vulnerable.php
         """
     )
     

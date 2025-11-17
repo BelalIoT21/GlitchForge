@@ -148,115 +148,115 @@
   "feature_importance": [
     {
       "feature": "exploit_cvss_interaction",
-      "importance": 0.16251333059454684
+      "importance": 0.16084459242241936
     },
     {
       "feature": "cvss_severity_encoded",
-      "importance": 0.12165435840828276
+      "importance": 0.12143343243752078
     },
     {
       "feature": "cvss_base_score",
-      "importance": 0.11135107748996771
+      "importance": 0.1117583784095241
     },
     {
       "feature": "has_exploit",
-      "importance": 0.08076745301099064
+      "importance": 0.08121744629450381
     },
     {
       "feature": "total_impact_score",
-      "importance": 0.06918785160800517
+      "importance": 0.06995320830777235
     },
     {
       "feature": "attack_vector_score",
-      "importance": 0.06310073083299293
+      "importance": 0.0632440281293344
     },
     {
       "feature": "affected_products_count",
-      "importance": 0.04887880430644582
+      "importance": 0.049022217547257586
     },
     {
       "feature": "is_high",
-      "importance": 0.04727540397583282
+      "importance": 0.046936100470615555
     },
     {
       "feature": "is_medium",
-      "importance": 0.044199216213147687
+      "importance": 0.044199271033903496
     },
     {
       "feature": "days_since_modified",
-      "importance": 0.04221679210376207
+      "importance": 0.04221679067813381
     },
     {
       "feature": "is_critical",
-      "importance": 0.039449624243047515
+      "importance": 0.04069241460886117
     },
     {
       "feature": "cvss_scope_encoded",
-      "importance": 0.036096768228493295
+      "importance": 0.03609411725870061
     },
     {
       "feature": "high_exploitability",
-      "importance": 0.0296366083417702
+      "importance": 0.029625817243321594
     },
     {
       "feature": "cvss_exploitability_score",
-      "importance": 0.022685747093565568
+      "importance": 0.022630005414151236
     },
     {
       "feature": "cvss_impact_score",
-      "importance": 0.01722379206738796
+      "importance": 0.016417804020059584
     },
     {
       "feature": "modification_span_days",
-      "importance": 0.015366372202932887
+      "importance": 0.015402119530229342
     },
     {
       "feature": "confidentiality_score",
-      "importance": 0.008705412779496024
-    },
-    {
-      "feature": "privileges_required_score",
-      "importance": 0.008216446691783575
+      "importance": 0.008666648508976265
     },
     {
       "feature": "high_impact",
-      "importance": 0.007907281954790056
+      "importance": 0.007875187135109481
     },
     {
       "feature": "availability_score",
-      "importance": 0.007622608788249628
+      "importance": 0.0076406940640453055
+    },
+    {
+      "feature": "privileges_required_score",
+      "importance": 0.007627710375817544
     },
     {
       "feature": "attack_complexity_score",
-      "importance": 0.00588898639819538
+      "importance": 0.005951640108052572
     },
     {
       "feature": "integrity_score",
-      "importance": 0.004935609689269221
-    },
-    {
-      "feature": "age_days",
-      "importance": 0.002436631690437882
+      "importance": 0.0049786764921828
     },
     {
       "feature": "user_interaction_score",
-      "importance": 0.0020180832892515957
+      "importance": 0.0024921332486700387
+    },
+    {
+      "feature": "age_days",
+      "importance": 0.0023603305056568167
     },
     {
       "feature": "multiple_products",
-      "importance": 0.0003782921436922722
+      "importance": 0.0003678743024041741
     },
     {
       "feature": "single_product",
-      "importance": 0.00015591525206392655
+      "importance": 0.00021954669508917566
     },
     {
       "feature": "widespread",
-      "importance": 0.00011814924371829135
+      "importance": 0.00011814924371828698
     },
     {
       "feature": "is_low",
-      "importance": 1.265135788028173e-05
+      "importance": 1.3665513968742553e-05
     },
     {
       "feature": "publish_quarter",
