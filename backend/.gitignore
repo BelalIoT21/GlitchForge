@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Data files (too large for git)
+data/raw/*.json
+data/raw/*.csv
+*.pkl
+*.h5
+*.npy
+
+# Models (too large)
+models/*.pkl
+models/*.h5
+
+# Outputs
+outputs/plots/*.png
+outputs/explanations/*.npy
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive
+.env
+config/secrets.py
+
+# Dissertation drafts (keep final only)
+docs/dissertation/*_draft*.docx
+docs/dissertation/*_v*.docx

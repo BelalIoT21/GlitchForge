@@ -1,0 +1,43 @@
+# Core ML/Data Science
+numpy
+pandas
+scikit-learn
+tensorflow
+
+# Explainability
+shap
+lime
+
+# Visualization
+matplotlib
+seaborn
+plotly
+
+# Web Framework
+Flask
+Flask-SQLAlchemy
+Flask-CORS
+
+# Production WSGI Server
+gunicorn
+waitress
+
+# Web Scraping/Scanning
+requests
+beautifulsoup4
+urllib3
+
+# Testing
+pytest
+pytest-cov
+
+# Utilities
+python-dotenv
+tqdm
+click
+
+# Model serialization
+joblib
+
+# Documentation
+Sphinx
