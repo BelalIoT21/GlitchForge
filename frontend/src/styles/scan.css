@@ -1,0 +1,583 @@
+/* ===== Scan Input ===== */
+.gf-scan {
+  position: relative;
+  background: rgba(26, 26, 46, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.gf-scan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(300px circle at var(--mx, 30%) var(--my, 50%), rgba(249,115,22,0.08) 0%, transparent 70%),
+    linear-gradient(135deg, rgba(249,115,22,0.03) 0%, transparent 55%);
+  pointer-events: none;
+  transition: background 0.05s linear;
+}
+
+.gf-scan-row {
+  position: relative;
+  display: flex;
+  gap: 12px;
+}
+
+.gf-scan-input {
+  flex: 1;
+  background: rgba(15, 15, 26, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  outline: none;
+}
+
+.gf-scan-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12), 0 0 20px rgba(249, 115, 22, 0.08);
+}
+
+.gf-scan-input::placeholder {
+  color: var(--text-muted);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.gf-scan-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gf-scan-submit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(249, 115, 22, 0.08);
+  color: var(--accent);
+  border: 1.5px solid rgba(249, 115, 22, 0.45);
+  border-radius: var(--radius);
+  padding: 13px 26px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.18s ease, color 0.2s ease;
+}
+
+.gf-scan-submit svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.gf-scan-submit:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.14);
+  border-color: var(--accent);
+  color: #ffb07a;
+  box-shadow: 0 0 24px rgba(249, 115, 22, 0.22), 0 4px 16px rgba(249, 115, 22, 0.12);
+  transform: translateY(-1px);
+}
+
+.gf-scan-submit:hover:not(:disabled) svg {
+  transform: translateX(3px);
+}
+
+.gf-scan-submit:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.gf-scan-submit:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Options row */
+.gf-scan-options {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  align-items: center;
+  padding-top: 18px;
+  border-top: 1px solid rgba(46, 46, 80, 0.6);
+}
+
+.gf-scan-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gf-scan-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Chips */
+.gf-chip {
+  background: rgba(22, 22, 42, 0.8);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  padding: 5px 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.gf-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.gf-chip.active {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.15);
+}
+
+.gf-chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Mode toggle */
+.gf-mode-toggle {
+  display: flex;
+  background: rgba(15, 15, 26, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 2px;
+  gap: 2px;
+}
+
+.gf-mode-option {
+  padding: 4px 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  border-radius: 16px;
+  letter-spacing: 0.3px;
+}
+
+.gf-mode-option:hover:not(.active):not(:disabled) {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+
+.gf-mode-option.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.gf-mode-option:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ===== Advanced Auth Options ===== */
+.gf-scan-advanced {
+  position: relative;
+  margin-top: 16px;
+  padding: 18px;
+  background: rgba(15, 15, 26, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.gf-scan-hint {
+  font-size: 0.82rem;
+  color: var(--accent);
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.gf-scan-auth-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gf-scan-auth-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.gf-scan-auth-field label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.gf-scan-auth-input,
+.gf-scan-auth-select {
+  width: 100%;
+  background: rgba(15, 15, 26, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.gf-scan-auth-input:focus,
+.gf-scan-auth-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
+}
+
+.gf-scan-auth-input::placeholder {
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.gf-scan-auth-select {
+  cursor: pointer;
+}
+
+.gf-scan-auth-input:disabled,
+.gf-scan-auth-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Scan Progress ===== */
+.gf-progress {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 32px;
+  gap: 22px;
+  background: rgba(26, 26, 46, 0.75);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.gf-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 40%), rgba(249,115,22,0.12) 0%, transparent 55%),
+    radial-gradient(circle at 75% 65%, rgba(249,115,22,0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Spinner rings */
+.gf-progress-rings {
+  position: relative;
+  width: 96px;
+  height: 96px;
+}
+
+.gf-progress-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+/* Static track ring */
+.gf-progress-ring-track {
+  inset: 0;
+  border: 1px solid rgba(249, 115, 22, 0.12);
+  border-radius: 50%;
+  position: absolute;
+}
+
+.gf-progress-ring-outer {
+  inset: 0;
+  border-width: 2.5px;
+  border-top-color: var(--accent);
+  border-right-color: rgba(249, 115, 22, 0.3);
+  animation: gf-spin 1.2s linear infinite;
+}
+
+.gf-progress-ring-inner {
+  inset: 14px;
+  border-width: 2px;
+  border-top-color: var(--accent-light);
+  border-left-color: rgba(249, 115, 22, 0.25);
+  opacity: 0.8;
+  animation: gf-spin 0.75s linear infinite reverse;
+}
+
+/* Center pulsing core */
+.gf-progress-ring-center {
+  position: absolute;
+  inset: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(249,115,22,0.25) 0%, rgba(249,115,22,0.05) 70%);
+  animation: gf-progress-core-pulse 2s ease-in-out infinite;
+}
+
+@keyframes gf-progress-core-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+}
+
+@keyframes gf-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gf-progress-text {
+  position: relative;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.gf-progress-url {
+  position: relative;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  font-size: 0.82rem;
+  max-width: 100%;
+  word-break: break-all;
+  text-align: center;
+  opacity: 0.85;
+}
+
+/* Progress bar */
+.gf-progress-bar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.gf-progress-bar-container {
+  flex: 1;
+  height: 6px;
+  background: rgba(46, 46, 80, 0.8);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.gf-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
+}
+
+.gf-progress-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 38px;
+  text-align: right;
+}
+
+/* Progress stats — pill card with dividers */
+.gf-progress-stats {
+  position: relative;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  background: rgba(15, 15, 26, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 620px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.gf-progress-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 12px 16px;
+  flex: 1;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+.gf-progress-stat:last-child {
+  border-right: none;
+}
+
+.gf-progress-stat-full {
+  min-width: 100%;
+  flex-direction: row;
+  gap: 8px;
+  border-right: none;
+}
+
+.gf-progress-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.gf-progress-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.gf-progress-stat-full .gf-progress-stat-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.gf-progress-stat-vulns .gf-progress-stat-value {
+  color: var(--critical);
+}
+
+/* Current scanning activity */
+.gf-progress-current-activity {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  background: rgba(15, 15, 26, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  max-width: 100%;
+  backdrop-filter: blur(8px);
+}
+
+.gf-progress-activity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: gf-activity-dot-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes gf-activity-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.65); }
+}
+
+.gf-progress-activity-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.gf-progress-activity-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.gf-progress-dots::after {
+  content: '';
+  animation: gf-dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes gf-dots {
+  0%  { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .gf-scan {
+    padding: 18px;
+  }
+
+  .gf-scan-row {
+    flex-direction: column;
+  }
+
+  .gf-scan-submit {
+    padding: 13px;
+    width: 100%;
+  }
+
+  .gf-scan-options {
+    gap: 12px;
+  }
+
+  .gf-scan-group {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .gf-scan {
+    padding: 14px;
+  }
+
+  .gf-scan-input {
+    font-size: 0.85rem;
+    padding: 11px 12px;
+  }
+
+  .gf-chip {
+    padding: 4px 12px;
+    font-size: 0.7rem;
+  }
+
+  .gf-mode-option {
+    padding: 4px 12px;
+    font-size: 0.7rem;
+  }
+
+  .gf-scan-auth-row {
+    flex-direction: column;
+  }
+
+  .gf-scan-auth-field {
+    min-width: 100%;
+  }
+}
