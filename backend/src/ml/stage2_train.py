@@ -104,6 +104,16 @@ def main():
     print(" "*20 + "FINAL VERSION")
     print("="*70)
     
+    # Setup directories and logging
+    directories = setup_directories()
+    data_dir = directories['data']
+    logs_dir = directories['logs']
+    outputs_dir = directories['outputs']
+    models_dir = directories['models']
+    
+    log_file = setup_logging(logs_dir)
+    logger = logging.getLogger(__name__)
+    
     # ========================================
     # STEP 1: Data Collection
     # ========================================
