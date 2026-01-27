@@ -1,0 +1,112 @@
+======================================================================
+GLITCHFORGE RISK PRIORITIZATION REPORT
+======================================================================
+
+Generated: 2026-01-27 20:55:35
+
+SUMMARY
+----------------------------------------------------------------------
+Total Vulnerabilities: 12,750
+Average Risk Score: 25.73/100
+Median Risk Score: 25.64/100
+Model Agreement Rate: 100.0%
+Average Confidence: 88.2%
+
+Risk Level Distribution:
+  Critical: 0 (0.0%)
+  High: 0 (0.0%)
+  Medium: 0 (0.0%)
+  Low: 199 (1.6%)
+  Informational: 12,551 (98.4%)
+
+Remediation Priority Distribution:
+  Immediate (0-24 hours): 0 (0.0%)
+  Urgent (1-7 days): 0 (0.0%)
+  Scheduled (1-4 weeks): 0 (0.0%)
+  Routine (1-3 months): 199 (1.6%)
+  Monitor Only: 12,551 (98.4%)
+
+
+TOP 20 CRITICAL VULNERABILITIES
+----------------------------------------------------------------------
+
+Rank #1: Low - Score: 39.7/100
+  ID: CVE-05053
+  Risk Level: Low (39.7/100) | Key Factors: Critical CVSS score (10.0), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #2: Low - Score: 38.9/100
+  ID: CVE-00078
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #3: Low - Score: 38.9/100
+  ID: CVE-00805
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #4: Low - Score: 38.9/100
+  ID: CVE-01303
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #5: Low - Score: 38.9/100
+  ID: CVE-01463
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #6: Low - Score: 38.9/100
+  ID: CVE-02688
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #7: Low - Score: 38.9/100
+  ID: CVE-02908
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #8: Low - Score: 38.9/100
+  ID: CVE-03028
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #9: Low - Score: 38.9/100
+  ID: CVE-03059
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #10: Low - Score: 38.9/100
+  ID: CVE-03105
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #11: Low - Score: 38.9/100
+  ID: CVE-03232
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #12: Low - Score: 38.9/100
+  ID: CVE-03289
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #13: Low - Score: 38.9/100
+  ID: CVE-03322
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #14: Low - Score: 38.9/100
+  ID: CVE-03466
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #15: Low - Score: 38.9/100
+  ID: CVE-03611
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #16: Low - Score: 38.9/100
+  ID: CVE-03860
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #17: Low - Score: 38.9/100
+  ID: CVE-03957
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #18: Low - Score: 38.9/100
+  ID: CVE-04121
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #19: Low - Score: 38.9/100
+  ID: CVE-04139
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+
+Rank #20: Low - Score: 38.9/100
+  ID: CVE-04194
+  Risk Level: Low (38.9/100) | Key Factors: Critical CVSS score (9.8), Public exploit available | Both ML models agree: Low risk (Conf: 68%) | Action: Routine (1-3 months)
+

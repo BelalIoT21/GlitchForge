@@ -1,0 +1,43 @@
+{
+  "total_vulnerabilities": 12750,
+  "by_risk_level": {
+    "Critical": 0,
+    "High": 0,
+    "Medium": 0,
+    "Low": 199,
+    "Informational": 12551
+  },
+  "by_remediation_priority": {
+    "Immediate (0-24 hours)": 0,
+    "Urgent (1-7 days)": 0,
+    "Scheduled (1-4 weeks)": 0,
+    "Routine (1-3 months)": 199,
+    "Monitor Only": 12551
+  },
+  "average_score": 25.73100184954413,
+  "median_score": 25.637398811474995,
+  "model_agreement_rate": 1.0,
+  "average_confidence": 0.8818185566617356,
+  "evaluation_metrics": {
+    "rf_accuracy": 0.00203921568627451,
+    "nn_accuracy": 0.00203921568627451,
+    "final_prioritization_accuracy": 0.00203921568627451,
+    "confusion_matrix": [
+      [
+        26,
+        0,
+        0
+      ],
+      [
+        12410,
+        0,
+        0
+      ],
+      [
+        314,
+        0,
+        0
+      ]
+    ]
+  }
+}

@@ -1,0 +1,112 @@
+======================================================================
+GLITCHFORGE RISK PRIORITIZATION REPORT
+======================================================================
+
+Generated: 2026-01-27 20:20:24
+
+SUMMARY
+----------------------------------------------------------------------
+Total Vulnerabilities: 283
+Average Risk Score: 84.91/100
+Median Risk Score: 82.42/100
+Model Agreement Rate: 49.5%
+Average Confidence: 90.1%
+
+Risk Level Distribution:
+  Critical: 133 (47.0%)
+  High: 143 (50.5%)
+  Medium: 3 (1.1%)
+  Low: 4 (1.4%)
+  Informational: 0 (0.0%)
+
+Remediation Priority Distribution:
+  Immediate (0-24 hours): 133 (47.0%)
+  Urgent (1-7 days): 143 (50.5%)
+  Scheduled (1-4 weeks): 3 (1.1%)
+  Routine (1-3 months): 4 (1.4%)
+  Monitor Only: 0 (0.0%)
+
+
+TOP 20 CRITICAL VULNERABILITIES
+----------------------------------------------------------------------
+
+Rank #1: Critical - Score: 92.4/100
+  ID: SCAN-6567
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.1), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 99%) | Action: Immediate (0-24 hours)
+
+Rank #2: Critical - Score: 92.4/100
+  ID: SCAN-9998
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.1), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 99%) | Action: Immediate (0-24 hours)
+
+Rank #3: Critical - Score: 92.4/100
+  ID: SCAN-6567
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.1), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 99%) | Action: Immediate (0-24 hours)
+
+Rank #4: Critical - Score: 92.4/100
+  ID: SCAN-5727
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.1), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 99%) | Action: Immediate (0-24 hours)
+
+Rank #5: Critical - Score: 92.4/100
+  ID: SCAN-4221
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.2), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 96%) | Action: Immediate (0-24 hours)
+
+Rank #6: Critical - Score: 92.4/100
+  ID: SCAN-5727
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.2), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 96%) | Action: Immediate (0-24 hours)
+
+Rank #7: Critical - Score: 92.4/100
+  ID: SCAN-4221
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.2), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 96%) | Action: Immediate (0-24 hours)
+
+Rank #8: Critical - Score: 92.4/100
+  ID: SCAN-6567
+  Risk Level: Critical (92.4/100) | Key Factors: High CVSS score (8.2), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 96%) | Action: Immediate (0-24 hours)
+
+Rank #9: Critical - Score: 92.3/100
+  ID: SCAN-5727
+  Risk Level: Critical (92.3/100) | Key Factors: High CVSS score (8.2), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 97%) | Action: Immediate (0-24 hours)
+
+Rank #10: Critical - Score: 92.3/100
+  ID: SCAN-4221
+  Risk Level: Critical (92.3/100) | Key Factors: High CVSS score (8.1), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 99%) | Action: Immediate (0-24 hours)
+
+Rank #11: Critical - Score: 92.3/100
+  ID: SCAN-9998
+  Risk Level: Critical (92.3/100) | Key Factors: High CVSS score (8.0), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 99%) | Action: Immediate (0-24 hours)
+
+Rank #12: Critical - Score: 92.2/100
+  ID: SCAN-6567
+  Risk Level: Critical (92.2/100) | Key Factors: High CVSS score (8.0), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 100%) | Action: Immediate (0-24 hours)
+
+Rank #13: Critical - Score: 92.2/100
+  ID: SCAN-5727
+  Risk Level: Critical (92.2/100) | Key Factors: High CVSS score (7.9), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 100%) | Action: Immediate (0-24 hours)
+
+Rank #14: Critical - Score: 92.2/100
+  ID: SCAN-9998
+  Risk Level: Critical (92.2/100) | Key Factors: High CVSS score (7.9), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 100%) | Action: Immediate (0-24 hours)
+
+Rank #15: Critical - Score: 92.1/100
+  ID: SCAN-5727
+  Risk Level: Critical (92.1/100) | Key Factors: High CVSS score (7.9), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 100%) | Action: Immediate (0-24 hours)
+
+Rank #16: Critical - Score: 92.1/100
+  ID: SCAN-5727
+  Risk Level: Critical (92.1/100) | Key Factors: High CVSS score (8.2), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 93%) | Action: Immediate (0-24 hours)
+
+Rank #17: Critical - Score: 92.1/100
+  ID: SCAN-9998
+  Risk Level: Critical (92.1/100) | Key Factors: High CVSS score (8.3), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 93%) | Action: Immediate (0-24 hours)
+
+Rank #18: Critical - Score: 92.1/100
+  ID: SCAN-4221
+  Risk Level: Critical (92.1/100) | Key Factors: High CVSS score (7.9), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 100%) | Action: Immediate (0-24 hours)
+
+Rank #19: Critical - Score: 92.1/100
+  ID: SCAN-9998
+  Risk Level: Critical (92.1/100) | Key Factors: High CVSS score (8.3), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 93%) | Action: Immediate (0-24 hours)
+
+Rank #20: Critical - Score: 92.0/100
+  ID: SCAN-9998
+  Risk Level: Critical (92.0/100) | Key Factors: High CVSS score (7.8), Public exploit available, High exploitability (3.5), Recent disclosure (30 days) | Both ML models agree: Low risk (Conf: 100%) | Action: Immediate (0-24 hours)
+

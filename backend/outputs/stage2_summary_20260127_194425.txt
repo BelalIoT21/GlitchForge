@@ -1,0 +1,62 @@
+======================================================================
+GLITCHFORGE STAGE 2 - ML TRAINING SUMMARY
+======================================================================
+
+Training Date: 2026-01-27 19:44:25
+Student: Bilal Almshmesh (U2687294)
+Supervisor: Dr. Halima Kure
+
+======================================================================
+DATASET INFORMATION
+======================================================================
+Total Samples: 15000
+Features: 29
+Training Set: 10500 samples
+Validation Set: 2250 samples
+Test Set: 2250 samples
+
+======================================================================
+MODEL PERFORMANCE - TEST SET
+======================================================================
+
+RANDOM FOREST:
+  Accuracy: 1.0000
+  Precision: 0.0000
+  Recall: 0.0000
+  F1-Score: 0.0000
+
+NEURAL NETWORK:
+  Accuracy: 0.9991
+  Precision: 0.0000
+  Recall: 0.0000
+  F1-Score: 0.0000
+
+======================================================================
+MODEL COMPARISON
+======================================================================
+🏆 Random Forest performed better (+0.09%)
+
+======================================================================
+TARGET ACHIEVEMENT (90% Accuracy)
+======================================================================
+Random Forest: ✅ ACHIEVED (100.00%)
+Neural Network: ✅ ACHIEVED (99.91%)
+
+🎉 Stage 2 Target Achieved!
+
+======================================================================
+OUTPUT FILES
+======================================================================
+Logs: logs\stage2_training_20260127_194310.log
+Data: data/
+  - nvd_data_15k.csv
+  - features_engineered.csv
+Models: models/
+  - random_forest.pkl
+  - neural_network.h5
+  - scaler.pkl
+Outputs: outputs/
+  - rf_training_metrics.json
+  - nn_training_metrics.json
+  - test_metrics.json
+  - stage2_summary_20260127_194425.txt
