@@ -59,6 +59,7 @@ GlitchForge/
 │   │       ├── metrics.py
 │   │       └── helpers.py
 │   ├── data/                  # Data storage
+│   ├── logs/                  # Training Data Logs
 │   ├── models/                # Trained ML models
 │   ├── outputs/               # Results & logs
 │   ├── app_server.py          # Flask API server
