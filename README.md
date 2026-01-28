@@ -23,7 +23,7 @@ GlitchForge is an **AI-enhanced vulnerability scanner** that combines traditiona
 - ✅ **Explainable AI**: SHAP and LIME explanations for predictions
 - ✅ **Intelligent Prioritization**: Risk-based remediation priority queue
 - ✅ **REST API**: Flask backend for frontend integration
-- ✅ **React Dashboard**: Modern web interface for visualization (in development)
+- ✅ **React Dashboard**: Full dark-theme UI — scan form, risk cards, stats, remediation guidance
 
 ---
 
@@ -72,7 +72,23 @@ GlitchForge/
 │   ├── models/                     # Trained ML models (RF + NN)
 │   ├── outputs/                    # Scan results & reports
 │   └── requirements.txt
-└── frontend/                       # React Dashboard (in development)
+└── frontend/                       # React + Vite + TypeScript Dashboard
+    ├── src/
+    │   ├── main.tsx                # React entry point
+    │   ├── App.tsx                 # Root state & scan orchestration
+    │   ├── styles.css              # Dark-theme global styles
+    │   ├── api/
+    │   │   ├── client.ts           # Axios API client
+    │   │   └── types.ts            # TypeScript interfaces
+    │   └── components/
+    │       ├── Header.tsx          # Brand + live status indicator
+    │       ├── ScanForm.tsx        # URL input + scan type/mode toggles
+    │       ├── StatsBar.tsx        # Summary stats (counts, agreement, time)
+    │       ├── VulnCard.tsx        # Expandable card: where / what / how to fix
+    │       └── ResultsList.tsx     # Sorted grid of VulnCards + stats
+    ├── vite.config.ts              # Dev proxy to localhost:5000
+    ├── package.json
+    └── index.html
 ```
 
 ---
@@ -124,6 +140,22 @@ python main.py
 ```
 
 Server will start on `http://localhost:5000`
+
+### Running the Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Dashboard will start on `http://localhost:5173` — the Vite dev proxy forwards `/api/*` and `/health` requests to the backend automatically.
+
+**Production build:**
+```bash
+npm run build       # outputs to frontend/dist/
+npm run preview     # serve the production build locally
+```
 
 ---
 
