@@ -5,7 +5,7 @@ const API_BASE = '/api'
 
 const api = axios.create({
   baseURL: '/',
-  timeout: 120000,
+  timeout: 300000, // 5 minutes - full scans can take 2-5 minutes depending on target
   headers: { 'Content-Type': 'application/json' },
 })
 

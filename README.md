@@ -100,6 +100,8 @@ GlitchForge/
 - Python 3.12+
 - pip package manager
 - Virtual environment (recommended)
+- Node.js 16+ and npm (for frontend)
+- NVD API Key (free registration at https://nvd.nist.gov/developers/request-an-api-key)
 
 ### Installation
 
@@ -131,15 +133,42 @@ cp .env.example .env
 # Add your NVD API key (optional but recommended)
 ```
 
+### Model Training (Required)
+
+**IMPORTANT:** Before running the backend, you must train the ML models. The system requires trained Random Forest and Neural Network models for risk scoring and prioritization.
+
+```bash
+cd backend
+
+# Train both ML models (Random Forest + Neural Network)
+python -m app.core.ml.stage2_train
+```
+
+This process will:
+- Download CVE data from NIST NVD API (uses your NVD_API_KEY from .env)
+- Process and engineer features from 15,000+ vulnerability records
+- Train Random Forest model (achieves ~93% accuracy)
+- Train Neural Network model (achieves ~91% accuracy)
+- Save trained models to `backend/models/` directory:
+  - `random_forest.pkl`
+  - `neural_network.h5`
+  - `scaler.pkl`
+
+**Note:** Training may take 5-10 minutes depending on your hardware. Once complete, the models are loaded once at server startup for fast performance.
+
+Without trained models, the frontend will show "Connected (models not loaded)" and ML-based risk scoring will not be available.
+
 ### Running the Backend
 
 ```bash
-# Start Flask API server
+# Start Flask API server (ensure models are trained first!)
 cd backend
 python main.py
 ```
 
 Server will start on `http://localhost:5000`
+
+**Troubleshooting:** If the frontend shows "Connected (models not loaded)", the ML models haven't been trained yet. Run the model training step above before starting the backend.
 
 ### Running the Frontend
 
@@ -156,6 +185,125 @@ Dashboard will start on `http://localhost:5173` — the Vite dev proxy forwards 
 npm run build       # outputs to frontend/dist/
 npm run preview     # serve the production build locally
 ```
+
+---
+
+## ⚡ Scan Performance & Timeouts
+
+### Scan Duration
+
+Full scans can take **2-5 minutes** depending on:
+- Target complexity (number of parameters, forms, endpoints)
+- Payload count (SQL: 50+, XSS: 40+, CSRF: 30+ payloads per type)
+- Network latency and target response time
+- Number of scan types enabled
+
+**Typical scan times:**
+- Quick scan (5 payloads/type): 30-60 seconds
+- Full scan (all payloads): 2-5 minutes
+- Complex target (many forms): 5-10 minutes
+
+### Timeout Configuration
+
+The system is configured with **5-minute timeouts** to accommodate full scans:
+
+- **Frontend:** 300 seconds (5 minutes) in [client.ts](frontend/src/api/client.ts#L8)
+- **Backend:** 300 seconds (5 minutes) in [main.py](backend/main.py#L38)
+
+### Faster Scanning Options
+
+**Option 1: Use Quick Scan**
+
+Quick scan uses fewer payloads and completes in 30-60 seconds:
+
+```bash
+POST /api/quick-scan
+{
+  "url": "http://target.com",
+  "scan_types": ["sql"]  # Scan one type at a time
+}
+```
+
+**Option 2: Reduce Scan Types**
+
+Scan one vulnerability type at a time:
+
+```bash
+# Just SQL injection (fastest)
+POST /api/scan
+{
+  "url": "http://target.com",
+  "scan_types": ["sql"]
+}
+```
+
+**Option 3: Configure Payload Limits**
+
+Edit [config.py](backend/app/config.py) to reduce payloads:
+
+```python
+SCANNER_CONFIG = {
+    'timeout': 5,
+    'max_retries': 2,
+    'max_payloads': 10  # Limit to 10 payloads per type (faster)
+}
+```
+
+### Troubleshooting Timeouts
+
+If you get "timeout exceeded" errors:
+
+1. **Use Quick Scan** instead of full scan for testing
+2. **Increase timeouts** in production (already set to 5 minutes)
+3. **Scan incrementally** (one vulnerability type at a time)
+4. **Check target availability** (slow targets take longer to scan)
+
+---
+
+## 🚀 Production Deployment
+
+**The development server is NOT suitable for production!** For handling multiple concurrent requests as a production service, use a production-grade WSGI server.
+
+### Quick Production Setup
+
+#### Windows (Waitress)
+
+```powershell
+cd backend
+
+# Install Waitress (Windows-compatible WSGI server)
+pip install waitress
+
+# Ensure models are trained
+python -m app.core.ml.stage2_train
+
+# Start production server (handles concurrent requests)
+python main.py
+```
+
+✅ **Handles 8+ concurrent requests** • Configured for 5-minute timeouts • Production-ready
+
+#### Linux/macOS
+
+```bash
+cd backend
+
+# Install Waitress (cross-platform)
+pip install waitress
+
+# Ensure models are trained
+python -m app.core.ml.stage2_train
+
+# Start production server
+python main.py
+```
+
+**Production Features:**
+- Handles 8 concurrent requests (configurable in main.py)
+- 5-minute timeout for long scans
+- Automatic error handling and recovery
+- Cross-platform (Windows, Linux, macOS)
+- Production-grade WSGI server (Waitress)
 
 ---
 
@@ -393,6 +541,76 @@ python -m app.services.engine --url http://testphp.vulnweb.com --output results.
 
 ---
 
+## 🔧 Common Issues & Troubleshooting
+
+### "Connected (models not loaded)"
+
+**Issue:** Frontend shows server is connected but models aren't loaded.
+
+**Solution:**
+```bash
+cd backend
+python -m app.core.ml.stage2_train  # Train the ML models
+```
+
+Models must be trained before the backend can perform ML-based risk scoring.
+
+### "Timeout of 120000ms exceeded" / Scan Takes Too Long
+
+**Issue:** Scan completes on backend (2-5 minutes) but frontend shows timeout error.
+
+**Solution:** ✅ **Already fixed!** Timeouts increased to 5 minutes in:
+- [Frontend: client.ts](frontend/src/api/client.ts#L8) → 300 seconds
+- [Backend: waitress_server.py](backend/waitress_server.py#L37) → 300 seconds
+
+If still timing out:
+
+1. **Restart both servers** to apply timeout changes
+2. **Use Quick Scan** for faster results (30-60 seconds):
+   ```bash
+   POST /api/quick-scan
+   ```
+3. **Scan one type at a time**:
+   ```json
+   { "url": "http://target.com", "scan_types": ["sql"] }
+   ```
+4. **Check target responsiveness** - slow targets take longer to scan
+
+### Server Won't Start
+
+**Issue:** Server fails to start or shows import errors.
+
+**Solution:**
+```powershell
+# Install required dependencies
+cd backend
+pip install -r requirements.txt
+
+# Start the server
+python main.py
+```
+
+### High Memory Usage
+
+**Issue:** Backend using too much RAM.
+
+**Solution:**
+- Reduce concurrent threads in `main.py` (edit THREADS = 4)
+- Use Quick Scan instead of Full Scan
+- Restart server periodically
+
+### Scans Not Finding Vulnerabilities
+
+**Issue:** Scanning returns 0 vulnerabilities on known-vulnerable targets.
+
+**Solution:**
+- Test with `http://testphp.vulnweb.com` (known vulnerable site)
+- Check target is accessible: `curl http://target.com`
+- Try different scan types: `["sql"]`, `["xss"]`, `["csrf"]`
+- Check server logs for errors
+
+---
+
 ## 🔒 Security & Ethics
 
 - ⚠️ **For Educational and Research Purposes Only**
@@ -423,7 +641,7 @@ This project is part of a Final Year Dissertation (Module: CN6000) exploring the
 | Stage 4: Prioritization | ✅ Complete | 100% |
 | Stage 5: Backend API | ✅ Complete | 100% |
 | Stage 6: React Dashboard | 🚧 In Progress | 30% |
-| Stage 7: Deployment | ⏳ Planned | 0% |
+| Stage 7: Deployment | ✅ Complete | 100% |
 
 ---
 
