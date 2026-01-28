@@ -31,42 +31,48 @@ GlitchForge is an **AI-enhanced vulnerability scanner** that combines traditiona
 
 ```
 GlitchForge/
-├── backend/                    # Flask API & Core Engine
-│   ├── src/                    # Source modules
-│   │   ├── scanner/           # Stage 1: Vulnerability scanners
-│   │   │   ├── base_scanner.py
-│   │   │   ├── sql_injection.py
-│   │   │   ├── xss_scanner.py
-│   │   │   ├── csrf_scanner.py
-│   │   │   └── main.py
-│   │   ├── ml/                # Stage 2: ML models
-│   │   │   ├── nvd_collector.py
-│   │   │   ├── feature_engineering.py
-│   │   │   ├── model_trainer.py
-│   │   │   └── stage2_train.py
-│   │   ├── xai/               # Stage 3: Explainable AI
-│   │   │   ├── shap_explainer.py
-│   │   │   ├── lime_explainer.py
-│   │   │   ├── visualization.py
-│   │   │   └── stage3_xai.py
-│   │   ├── prioritization/    # Stage 4: Risk prioritization
-│   │   │   ├── engine.py
-│   │   │   ├── manager.py
-│   │   │   ├── data_models.py
-│   │   │   └── stage4_prioritization.py
-│   │   └── utils/             # Utilities
+├── backend/                        # Flask API & Core Engine
+│   ├── main.py                     # Entry point (python main.py)
+│   ├── app/                        # Application package
+│   │   ├── __init__.py             # Flask app factory (create_app)
+│   │   ├── config.py               # Unified configuration & payloads
+│   │   ├── routes/                 # API endpoint blueprints
+│   │   │   ├── health.py           # GET /health, GET /api/status
+│   │   │   └── scan.py             # POST /api/scan, POST /api/quick-scan
+│   │   ├── services/               # Business logic layer
+│   │   │   └── engine.py           # GlitchForgeEngine (singleton, full pipeline)
+│   │   ├── core/                   # Domain modules
+│   │   │   ├── scanner/            # Stage 1: Vulnerability scanners
+│   │   │   │   ├── base_scanner.py
+│   │   │   │   ├── sql_injection.py
+│   │   │   │   ├── xss_scanner.py
+│   │   │   │   ├── csrf_scanner.py
+│   │   │   │   └── main.py         # GlitchForgeScanner orchestrator
+│   │   │   ├── ml/                 # Stage 2: ML models & training
+│   │   │   │   ├── nvd_collector.py
+│   │   │   │   ├── feature_engineering.py
+│   │   │   │   ├── model_trainer.py
+│   │   │   │   └── stage2_train.py
+│   │   │   ├── xai/                # Stage 3: Explainable AI
+│   │   │   │   ├── shap_explainer.py
+│   │   │   │   ├── lime_explainer.py
+│   │   │   │   ├── visualization.py
+│   │   │   │   └── stage3_xai.py
+│   │   │   └── prioritization/     # Stage 4: Risk prioritization
+│   │   │       ├── engine.py
+│   │   │       ├── manager.py
+│   │   │       ├── data_models.py
+│   │   │       └── stage4_prioritization.py
+│   │   └── utils/                  # Shared utilities
 │   │       ├── logger.py
 │   │       ├── metrics.py
 │   │       └── helpers.py
-│   ├── data/                  # Data storage
-│   ├── logs/                  # Training Data Logs
-│   ├── models/                # Trained ML models
-│   ├── outputs/               # Results & logs
-│   ├── app_server.py          # Flask API server
-│   ├── config.py              # Configuration
-│   ├── glitchforge_engine.py  # Core engine
+│   ├── data/                       # Data storage (raw & processed)
+│   ├── logs/                       # Training & scan logs
+│   ├── models/                     # Trained ML models (RF + NN)
+│   ├── outputs/                    # Scan results & reports
 │   └── requirements.txt
-└── frontend/                   # React Dashboard (coming soon)
+└── frontend/                       # React Dashboard (in development)
 ```
 
 ---
@@ -113,7 +119,8 @@ cp .env.example .env
 
 ```bash
 # Start Flask API server
-python app_server.py
+cd backend
+python main.py
 ```
 
 Server will start on `http://localhost:5000`
@@ -127,14 +134,24 @@ Server will start on `http://localhost:5000`
 Automated detection of common web vulnerabilities:
 
 ```bash
-# Run individual scanner
-python -m src.scanner.main --url http://target.com
+cd backend
+
+# Full scan (all payloads, all vulnerability types)
+python -m app.services.engine --url http://target.com
+
+# Scanner only (no ML analysis)
+python -m app.core.scanner.main --url http://target.com
+
+# Scan specific types only
+python -m app.core.scanner.main --url http://target.com --types sql xss
 
 # Available scanners:
 # - SQL Injection (Error-based, Union-based, Blind, Time-based)
 # - Cross-Site Scripting (Reflected, Stored, DOM-based)
 # - Cross-Site Request Forgery (Token validation)
 ```
+
+Each finding includes **where** it occurred, **what caused it** (payload, evidence, CWE), and **how to fix it** (remediation steps).
 
 **Technologies:** Python, Requests, BeautifulSoup4
 
@@ -143,9 +160,10 @@ python -m src.scanner.main --url http://target.com
 Train machine learning models on CVE/NVD data:
 
 ```bash
+cd backend
+
 # Train both Random Forest and Neural Network models
-cd src/ml
-python stage2_train.py
+python -m app.core.ml.stage2_train
 
 # Models achieve >90% accuracy
 # - Random Forest: 93% accuracy
@@ -161,9 +179,10 @@ python stage2_train.py
 Generate transparent explanations for ML predictions:
 
 ```bash
+cd backend
+
 # Generate SHAP and LIME explanations
-cd src/xai
-python stage3_xai.py
+python -m app.core.xai.stage3_xai
 
 # Outputs:
 # - Feature importance rankings
@@ -179,15 +198,17 @@ python stage3_xai.py
 Intelligent vulnerability prioritization:
 
 ```bash
+cd backend
+
 # Run prioritization engine
-cd src/prioritization
-python stage4_prioritization.py
+python -m app.core.prioritization.stage4_prioritization
 
 # Factors considered:
 # - CVSS scores (Base, Exploitability, Impact)
-# - Model predictions
+# - ML model predictions (RF + NN agreement)
 # - Exploit availability
 # - Age and patch status
+# - Affected products count
 ```
 
 **Output:** Priority queue with remediation recommendations
@@ -226,10 +247,34 @@ Content-Type: application/json
 {
   "success": true,
   "vulnerabilities_found": 5,
-  "risk_scores": [...],
+  "risk_scores": [
+    {
+      "vulnerability_id": "SCAN-4821",
+      "risk_score": 87.9,
+      "risk_level": "Critical",
+      "remediation_priority": "Immediate",
+      "where": {
+        "url": "http://target.com/login",
+        "parameter": "username"
+      },
+      "what": {
+        "vulnerability_type": "SQL Injection",
+        "payload_used": "' OR 1=1 --",
+        "description": "Error-based SQL Injection detected...",
+        "evidence": "SQL syntax error in response...",
+        "cwe_id": "CWE-89"
+      },
+      "how_to_fix": {
+        "remediation": "1. Use parameterized queries...",
+        "priority": "Immediate"
+      },
+      "explanation": "Risk Level: Critical (87.9/100) | ..."
+    }
+  ],
   "statistics": {
     "average_risk_score": 62.5,
-    "total_vulnerabilities": 5
+    "total_vulnerabilities": 5,
+    "model_agreement_rate": 80.0
   },
   "total_time": 8.3
 }
@@ -252,15 +297,24 @@ Content-Type: application/json
 ## 🧪 Testing
 
 ```bash
-# Run unit tests
-pytest tests/
+cd backend
 
-# Run with coverage
-pytest --cov=src tests/
+# Run Stage 1 scanner test suite
+python app/core/scanner/stage1_scanner.py
 
-# Test API endpoints
-python test_api.py
+# Test against vulnerable web apps
+python -m app.core.scanner.main --url http://testphp.vulnweb.com
+python -m app.core.scanner.main --url http://192.168.1.127/DVWA --types sql xss
+
+# Run full engine test (scan + ML + prioritization)
+python -m app.services.engine --url http://testphp.vulnweb.com --output results.json
 ```
+
+**Test Targets (intentionally vulnerable):**
+- `http://testphp.vulnweb.com` — SQL injection, XSS, CSRF
+- `http://192.168.1.127/DVWA` — Local DVWA instance (set security to `low`)
+- OWASP Juice Shop: `docker run -p 3000:3000 bthemis/juice-shop`
+- OWASP WebGoat: `docker run -p 8080:8080 owasp/webgoat`
 
 ---
 
