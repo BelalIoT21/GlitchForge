@@ -111,7 +111,7 @@ git clone https://github.com/BelalIoT21/GlitchForge.git
 cd GlitchForge/backend
 
 # Create virtual environment
-python -m venv venv
+py -m venv venv
 
 # Activate virtual environment
 # Windows:
@@ -141,7 +141,7 @@ cp .env.example .env
 cd backend
 
 # Train both ML models (Random Forest + Neural Network)
-python -m app.core.ml.stage2_train
+py -m app.core.ml.stage2_train
 ```
 
 This process will:
@@ -163,7 +163,7 @@ Without trained models, the frontend will show "Connected (models not loaded)" a
 ```bash
 # Start Flask API server (ensure models are trained first!)
 cd backend
-python main.py
+py main.py
 ```
 
 Server will start on `http://localhost:5000`
@@ -275,10 +275,10 @@ cd backend
 pip install waitress
 
 # Ensure models are trained
-python -m app.core.ml.stage2_train
+py -m app.core.ml.stage2_train
 
 # Start production server (handles concurrent requests)
-python main.py
+py main.py
 ```
 
 ✅ **Handles 8+ concurrent requests** • Configured for 5-minute timeouts • Production-ready
@@ -292,10 +292,10 @@ cd backend
 pip install waitress
 
 # Ensure models are trained
-python -m app.core.ml.stage2_train
+py -m app.core.ml.stage2_train
 
 # Start production server
-python main.py
+py main.py
 ```
 
 **Production Features:**
@@ -317,13 +317,13 @@ Automated detection of common web vulnerabilities:
 cd backend
 
 # Full scan (all payloads, all vulnerability types)
-python -m app.services.engine --url http://target.com
+py -m app.services.engine --url http://target.com
 
 # Scanner only (no ML analysis)
-python -m app.core.scanner.main --url http://target.com
+py -m app.core.scanner.main --url http://target.com
 
 # Scan specific types only
-python -m app.core.scanner.main --url http://target.com --types sql xss
+py -m app.core.scanner.main --url http://target.com --types sql xss
 
 # Available scanners:
 # - SQL Injection (Error-based, Union-based, Blind, Time-based)
@@ -343,7 +343,7 @@ Train machine learning models on CVE/NVD data:
 cd backend
 
 # Train both Random Forest and Neural Network models
-python -m app.core.ml.stage2_train
+py -m app.core.ml.stage2_train
 
 # Models achieve >90% accuracy
 # - Random Forest: 93% accuracy
@@ -362,7 +362,7 @@ Generate transparent explanations for ML predictions:
 cd backend
 
 # Generate SHAP and LIME explanations
-python -m app.core.xai.stage3_xai
+py -m app.core.xai.stage3_xai
 
 # Outputs:
 # - Feature importance rankings
@@ -381,7 +381,7 @@ Intelligent vulnerability prioritization:
 cd backend
 
 # Run prioritization engine
-python -m app.core.prioritization.stage4_prioritization
+py -m app.core.prioritization.stage4_prioritization
 
 # Factors considered:
 # - CVSS scores (Base, Exploitability, Impact)
@@ -480,14 +480,14 @@ Content-Type: application/json
 cd backend
 
 # Run Stage 1 scanner test suite
-python app/core/scanner/stage1_scanner.py
+py app/core/scanner/stage1_scanner.py
 
 # Test against vulnerable web apps
-python -m app.core.scanner.main --url http://testphp.vulnweb.com
-python -m app.core.scanner.main --url http://192.168.1.127/DVWA --types sql xss
+py -m app.core.scanner.main --url http://testphp.vulnweb.com
+py -m app.core.scanner.main --url http://192.168.1.127/DVWA --types sql xss
 
 # Run full engine test (scan + ML + prioritization)
-python -m app.services.engine --url http://testphp.vulnweb.com --output results.json
+py -m app.services.engine --url http://testphp.vulnweb.com --output results.json
 ```
 
 **Test Targets (intentionally vulnerable):**
@@ -550,31 +550,14 @@ python -m app.services.engine --url http://testphp.vulnweb.com --output results.
 **Solution:**
 ```bash
 cd backend
-python -m app.core.ml.stage2_train  # Train the ML models
+py -m app.core.ml.stage2_train  # Train the ML models
 ```
 
 Models must be trained before the backend can perform ML-based risk scoring.
 
-### "Timeout of 120000ms exceeded" / Scan Takes Too Long
+### Timeout Issues
 
-**Issue:** Scan completes on backend (2-5 minutes) but frontend shows timeout error.
-
-**Solution:** ✅ **Already fixed!** Timeouts increased to 5 minutes in:
-- [Frontend: client.ts](frontend/src/api/client.ts#L8) → 300 seconds
-- [Backend: waitress_server.py](backend/waitress_server.py#L37) → 300 seconds
-
-If still timing out:
-
-1. **Restart both servers** to apply timeout changes
-2. **Use Quick Scan** for faster results (30-60 seconds):
-   ```bash
-   POST /api/quick-scan
-   ```
-3. **Scan one type at a time**:
-   ```json
-   { "url": "http://target.com", "scan_types": ["sql"] }
-   ```
-4. **Check target responsiveness** - slow targets take longer to scan
+See the [Scan Performance & Timeouts](#-scan-performance--timeouts) section above for detailed timeout configuration and solutions
 
 ### Server Won't Start
 
@@ -587,7 +570,7 @@ cd backend
 pip install -r requirements.txt
 
 # Start the server
-python main.py
+py main.py
 ```
 
 ### High Memory Usage
