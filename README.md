@@ -110,15 +110,6 @@ GlitchForge/
 git clone https://github.com/BelalIoT21/GlitchForge.git
 cd GlitchForge/backend
 
-# Create virtual environment
-py -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
 # Install dependencies
 pip install -r requirements.txt
 ```
