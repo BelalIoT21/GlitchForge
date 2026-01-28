@@ -1,0 +1,37 @@
+{
+  "summary": {
+    "target_url": "http://testphp.vulnweb.com",
+    "start_time": "2026-01-28T15:33:06.239234",
+    "end_time": "2026-01-28T15:33:06.581929",
+    "duration": 0.342695,
+    "total_vulnerabilities": 1,
+    "by_type": {
+      "sql_injection": 0,
+      "xss": 0,
+      "csrf": 1
+    },
+    "by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 0,
+      "info": 0
+    }
+  },
+  "vulnerabilities": [
+    {
+      "vulnerability_type": "Cross-Site Request Forgery (CSRF)",
+      "url": "http://testphp.vulnweb.com/search.php?test=query",
+      "parameter": "Form: search.php?test=query",
+      "payload": "N/A",
+      "severity": "Medium",
+      "confidence": 0.75,
+      "description": "CSRF vulnerability detected: Missing CSRF token. The form (action: search.php?test=query, method: post) does not have adequate CSRF protection. While this form may not perform highly sensitive actions, CSRF protection should still be implemented to prevent unauthorized requests.",
+      "evidence": "Form inputs: searchFor, goButton",
+      "remediation": "1. Implement CSRF tokens (also called anti-CSRF tokens or synchronizer tokens).\n2. Use the Synchronizer Token Pattern: generate a unique token for each session/request.\n3. Validate the token on the server side for all state-changing operations.\n4. Set the SameSite cookie attribute to 'Strict' or 'Lax' for session cookies.\n5. For sensitive operations, require re-authentication or additional verification.\n6. Implement proper CORS policies to restrict cross-origin requests.\n7. Use security frameworks that provide built-in CSRF protection (e.g., Django, Spring Security).",
+      "timestamp": "2026-01-28T15:33:06.581495",
+      "cvss_score": 4.3,
+      "cwe_id": "CWE-352"
+    }
+  ]
+}
