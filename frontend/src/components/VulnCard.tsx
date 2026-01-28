@@ -22,7 +22,7 @@ interface VulnCardProps {
   index: number
 }
 
-export default function VulnCard({ vuln, index }: VulnCardProps) {
+export default function VulnCard({ vuln }: VulnCardProps) {
   const [expanded, setExpanded] = useState(false)
 
   const color = LEVEL_COLORS[vuln.risk_level] || '#888'
