@@ -19,7 +19,6 @@ const LEVEL_BG: Record<string, string> = {
 
 interface VulnCardProps {
   vuln: RiskScore
-  index: number
 }
 
 export default function VulnCard({ vuln }: VulnCardProps) {
