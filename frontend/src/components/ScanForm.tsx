@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 
 interface ScanFormProps {
-  onSubmit: (url: string, scanTypes: string[], mode: 'full' | 'quick') => void
+  onSubmit: (url: string, scanTypes: string[]) => void
   loading: boolean
 }
 
@@ -10,7 +10,6 @@ const ALL_TYPES = ['sql', 'xss', 'csrf']
 export default function ScanForm({ onSubmit, loading }: ScanFormProps) {
   const [url, setUrl] = useState('')
   const [scanTypes, setScanTypes] = useState<string[]>(ALL_TYPES)
-  const [mode, setMode] = useState<'full' | 'quick'>('full')
 
   const toggleType = (type: string) => {
     setScanTypes(prev =>
@@ -23,7 +22,7 @@ export default function ScanForm({ onSubmit, loading }: ScanFormProps) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!url.trim() || scanTypes.length === 0) return
-    onSubmit(url.trim(), scanTypes, mode)
+    onSubmit(url.trim(), scanTypes)
   }
 
   return (
@@ -57,26 +56,6 @@ export default function ScanForm({ onSubmit, loading }: ScanFormProps) {
               {type.toUpperCase()}
             </button>
           ))}
-        </div>
-
-        <div className="scan-mode">
-          <span className="options-label">Mode:</span>
-          <button
-            type="button"
-            className={`type-toggle ${mode === 'full' ? 'active' : ''}`}
-            onClick={() => setMode('full')}
-            disabled={loading}
-          >
-            Full (ML + Priority)
-          </button>
-          <button
-            type="button"
-            className={`type-toggle ${mode === 'quick' ? 'active' : ''}`}
-            onClick={() => setMode('quick')}
-            disabled={loading}
-          >
-            Quick
-          </button>
         </div>
       </div>
     </form>

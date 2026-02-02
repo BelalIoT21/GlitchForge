@@ -107,16 +107,112 @@ export default function VulnCard({ vuln }: VulnCardProps) {
             </div>
           )}
 
-          {/* ML explanation */}
-          <div className="vuln-section">
-            <div className="vuln-section-title">ML Analysis</div>
-            <div className="vuln-section-value">{vuln.explanation}</div>
-            <div className="vuln-meta">
-              <span>CVSS: {vuln.cvss_base}</span>
-              <span>Exploitability: {vuln.cvss_exploitability}</span>
-              <span>Impact: {vuln.cvss_impact}</span>
-              <span>Confidence: {(vuln.confidence * 100).toFixed(0)}%</span>
-              <span>{vuln.model_agreement ? 'Models agree' : 'Models disagree'}</span>
+          {/* ML Analysis with Visual Risk Breakdown */}
+          <div className="vuln-section vuln-section-ml">
+            <div className="vuln-section-title">ML-Based Risk Assessment</div>
+
+            {/* Risk Score Visualization */}
+            <div className="risk-score-visual">
+              <div className="risk-score-bar-container">
+                <div
+                  className="risk-score-bar"
+                  style={{
+                    width: `${vuln.risk_score}%`,
+                    backgroundColor: color
+                  }}
+                >
+                  <span className="risk-score-text">{vuln.risk_score}/100</span>
+                </div>
+              </div>
+              <div className="risk-level-indicator" style={{ color }}>
+                {vuln.risk_level} Risk → {vuln.remediation_priority}
+              </div>
+            </div>
+
+            {/* Primary Risk Factors */}
+            {vuln.primary_factors && vuln.primary_factors.length > 0 && (
+              <div className="risk-factors">
+                <div className="risk-factors-title">Key Risk Factors:</div>
+                <ul className="risk-factors-list">
+                  {vuln.primary_factors.map((factor, i) => (
+                    <li key={i} className="risk-factor-item">
+                      <span className="risk-factor-bullet">•</span>
+                      {factor}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* CVSS Breakdown Chart */}
+            <div className="cvss-breakdown">
+              <div className="cvss-breakdown-title">CVSS Score Breakdown</div>
+              <div className="cvss-bar-chart">
+                <div className="cvss-bar-row">
+                  <span className="cvss-bar-label">Base Score</span>
+                  <div className="cvss-bar-track">
+                    <div
+                      className="cvss-bar-fill"
+                      style={{
+                        width: `${(vuln.cvss_base / 10) * 100}%`,
+                        backgroundColor: '#ef4444'
+                      }}
+                    />
+                  </div>
+                  <span className="cvss-bar-value">{vuln.cvss_base.toFixed(1)}</span>
+                </div>
+                <div className="cvss-bar-row">
+                  <span className="cvss-bar-label">Exploitability</span>
+                  <div className="cvss-bar-track">
+                    <div
+                      className="cvss-bar-fill"
+                      style={{
+                        width: `${(vuln.cvss_exploitability / 4) * 100}%`,
+                        backgroundColor: '#f97316'
+                      }}
+                    />
+                  </div>
+                  <span className="cvss-bar-value">{vuln.cvss_exploitability.toFixed(1)}</span>
+                </div>
+                <div className="cvss-bar-row">
+                  <span className="cvss-bar-label">Impact</span>
+                  <div className="cvss-bar-track">
+                    <div
+                      className="cvss-bar-fill"
+                      style={{
+                        width: `${(vuln.cvss_impact / 6) * 100}%`,
+                        backgroundColor: '#eab308'
+                      }}
+                    />
+                  </div>
+                  <span className="cvss-bar-value">{vuln.cvss_impact.toFixed(1)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ML Explanation */}
+            <div className="ml-explanation">
+              <div className="ml-explanation-icon">🤖</div>
+              <div className="ml-explanation-text">{vuln.explanation}</div>
+            </div>
+
+            {/* Model Info */}
+            <div className="model-info">
+              <span className="model-info-badge">
+                <span className="model-info-label">Model Agreement:</span>
+                <span className={`model-info-value ${vuln.model_agreement ? 'agree' : 'disagree'}`}>
+                  {vuln.model_agreement ? '✓ Both models agree' : '✗ Models disagree'}
+                </span>
+              </span>
+              <span className="model-info-badge">
+                <span className="model-info-label">Confidence:</span>
+                <span className="model-info-value">{(vuln.confidence * 100).toFixed(0)}%</span>
+              </span>
+              {vuln.has_exploit && (
+                <span className="model-info-badge exploit-badge">
+                  ⚠ Public Exploit Available
+                </span>
+              )}
             </div>
           </div>
         </div>

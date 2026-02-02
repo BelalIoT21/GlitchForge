@@ -47,56 +47,23 @@ DVWA_CONFIG = {
     'security_levels': ['low', 'medium', 'high']
 }
 
-# Scanner Configuration
+# Scanner Configuration - Rebuilt for Speed and Accuracy
+# New scanner design:
+# - Error-based SQL detection only (fast and reliable)
+# - Reflected XSS only (no DOM/stored - too slow)
+# - Simple CSRF token checking
+# - Smart parameter filtering (skips tracking params)
+# - Maximum 10 parameters per URL
 SCANNER_CONFIG = {
-    'timeout': 10,
+    'timeout': 15,
     'max_retries': 3,
-    'user_agent': 'GlitchForge/1.0'
+    'user_agent': 'GlitchForge/2.0'
 }
 
-# SQL Injection Payloads
-SQL_PAYLOADS = {
-    'error_based': [
-        "'",
-        "1' OR '1'='1",
-        "1' OR '1'='1' --",
-        "1' OR '1'='1' #",
-        "' OR 1=1 --",
-        "admin' --",
-        "admin' #",
-    ],
-    'union_based': [
-        "1' UNION SELECT null, version() #",
-        "1' UNION SELECT null, user() #",
-        "1' UNION SELECT null, database() #",
-    ],
-    'boolean_blind': [
-        "1' AND '1'='1",
-        "1' AND '1'='2",
-    ],
-    'time_based': [
-        "1' AND SLEEP(5) #",
-        "1'; WAITFOR DELAY '00:00:05' --",
-    ]
-}
-
-# XSS Payloads
-XSS_PAYLOADS = {
-    'basic': [
-        '<script>alert(1)</script>',
-        '<img src=x onerror=alert(1)>',
-        '<svg/onload=alert(1)>',
-    ],
-    'encoded': [
-        '<ScRiPt>alert(1)</ScRiPt>',
-        '&lt;script&gt;alert(1)&lt;/script&gt;',
-    ],
-    'event_handlers': [
-        '" onload="alert(1)',
-        "' onmouseover='alert(1)",
-        '" autofocus onfocus="alert(1)',
-    ]
-}
+# Note: Payloads are now defined inside each scanner class for better encapsulation
+# SQL Scanner: 4 error-based payloads (', 1', 1' OR '1'='1, 1' --)
+# XSS Scanner: 4 reflected payloads with unique markers
+# CSRF Scanner: Checks for tokens, SameSite cookies, and CSRF headers
 
 # ML Configuration
 ML_CONFIG = {

@@ -539,3 +539,198 @@ code {
   flex-direction: column;
   gap: 10px;
 }
+
+/* ===== ML Analysis Visualization ===== */
+.vuln-section-ml {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+/* Risk Score Visual */
+.risk-score-visual {
+  margin-bottom: 20px;
+}
+
+.risk-score-bar-container {
+  width: 100%;
+  height: 32px;
+  background: var(--bg);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.risk-score-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  transition: width 0.3s ease;
+  border-radius: 6px;
+}
+
+.risk-score-text {
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.risk-level-indicator {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Risk Factors */
+.risk-factors {
+  margin: 16px 0;
+}
+
+.risk-factors-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.risk-factors-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.risk-factor-item {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 4px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.risk-factor-bullet {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+/* CVSS Breakdown Chart */
+.cvss-breakdown {
+  margin: 16px 0;
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+
+.cvss-breakdown-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.cvss-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cvss-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+}
+
+.cvss-bar-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.cvss-bar-track {
+  width: 100%;
+  height: 18px;
+  background: var(--bg-surface);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cvss-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.cvss-bar-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+}
+
+/* ML Explanation */
+.ml-explanation {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+}
+
+.ml-explanation-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.ml-explanation-text {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* Model Info */
+.model-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.model-info-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 6px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.model-info-label {
+  color: var(--text-muted);
+}
+
+.model-info-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.model-info-value.agree {
+  color: var(--green);
+}
+
+.model-info-value.disagree {
+  color: var(--orange);
+}
+
+.exploit-badge {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--red);
+  font-weight: 600;
+}

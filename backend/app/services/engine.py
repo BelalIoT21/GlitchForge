@@ -44,8 +44,8 @@ if _backend_dir not in sys.path:
     sys.path.insert(0, _backend_dir)
 
 # Stage 1: Scanner imports
-from app.core.scanner.main import GlitchForgeScanner
-from app.core.scanner.base_scanner import VulnerabilityResult
+from app.core.scanner.stage1_scanner import GlitchForgeScanner
+from app.core.scanner.base_scanner import VulnerabilityResult, VulnerabilityType
 
 # Stage 2: ML imports
 from app.core.ml.feature_engineering import FeatureEngineer
@@ -60,6 +60,32 @@ from app.utils.logger import get_logger
 
 # Config
 from app.config import SCANNER_CONFIG
+
+
+def _get_vuln_metadata(vuln_type: VulnerabilityType):
+    """Get description, CWE ID, and remediation for vulnerability type"""
+    metadata = {
+        VulnerabilityType.SQL_INJECTION: {
+            'description': "Application is vulnerable to SQL Injection attacks. Attackers can manipulate database queries to access or modify data.",
+            'cwe_id': "CWE-89",
+            'remediation': "Use parameterized queries or prepared statements. Never concatenate user input directly into SQL queries. Implement input validation and sanitization."
+        },
+        VulnerabilityType.XSS: {
+            'description': "Application is vulnerable to Cross-Site Scripting (XSS). Attackers can inject malicious scripts into web pages viewed by users.",
+            'cwe_id': "CWE-79",
+            'remediation': "Encode all user input before displaying it. Use Content Security Policy (CSP) headers. Implement proper input validation and output encoding."
+        },
+        VulnerabilityType.CSRF: {
+            'description': "Application lacks CSRF protection. Attackers can trick users into performing unwanted actions.",
+            'cwe_id': "CWE-352",
+            'remediation': "Implement CSRF tokens for all state-changing operations. Use SameSite cookie attribute. Verify Origin and Referer headers."
+        }
+    }
+    return metadata.get(vuln_type, {
+        'description': "Security vulnerability detected",
+        'cwe_id': "CWE-000",
+        'remediation': "Follow security best practices"
+    })
 
 
 class GlitchForgeEngine:
@@ -132,7 +158,14 @@ Student: Belal Almshmesh(U2687294)
 Supervisor: Dr. Halima Kure
 University of East London - BSc Computer Science
 """
-        print(banner)
+        try:
+            print(banner)
+        except UnicodeEncodeError:
+            # Fallback for Windows console
+            print("\n" + "="*54)
+            print(" " * 15 + "GLITCHFORGE")
+            print(" " * 8 + "Explainable AI Vulnerability Management")
+            print("="*54 + "\n")
 
     def _load_models(self):
         """Load ML models once at startup"""
@@ -579,6 +612,9 @@ University of East London - BSc Computer Science
 
         # Merge in original scanner details (where, what caused it, how to fix)
         if original_vuln:
+            # Get metadata for vulnerability type
+            metadata = _get_vuln_metadata(original_vuln.vuln_type)
+
             result['where'] = {
                 'url': original_vuln.url,
                 'parameter': original_vuln.parameter,
@@ -587,13 +623,13 @@ University of East London - BSc Computer Science
             result['what'] = {
                 'vulnerability_type': original_vuln.vuln_type.value,
                 'payload_used': original_vuln.payload,
-                'description': original_vuln.description,
+                'description': metadata['description'],
                 'evidence': original_vuln.evidence,
-                'cwe_id': original_vuln.cwe_id,
+                'cwe_id': metadata['cwe_id'],
                 'confidence': original_vuln.confidence
             }
             result['how_to_fix'] = {
-                'remediation': original_vuln.remediation,
+                'remediation': metadata['remediation'],
                 'priority': risk_score.remediation_priority.value
             }
 
