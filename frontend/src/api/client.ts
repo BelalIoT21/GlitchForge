@@ -10,7 +10,13 @@ const api = axios.create({
 })
 
 export async function getHealth(): Promise<HealthStatus> {
-  const { data } = await api.get<HealthStatus>('/health')
+  const { data } = await api.get<HealthStatus>('/health', {
+    timeout: 5000, // Short timeout for health checks
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+    },
+  })
   return data
 }
 

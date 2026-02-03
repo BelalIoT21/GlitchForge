@@ -1,0 +1,499 @@
+/* ===== Hero ===== */
+.gf-hero {
+  position: relative;
+  text-align: center;
+  padding: 48px 24px 40px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.gf-hero-glow {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 200px;
+  background: radial-gradient(ellipse, rgba(129, 140, 248, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.gf-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.gf-hero-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid rgba(129, 140, 248, 0.2);
+  border-radius: 20px;
+  padding: 4px 14px;
+  margin-bottom: 16px;
+}
+
+.gf-hero-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.gf-hero-accent {
+  background: linear-gradient(135deg, var(--accent), #a78bfa, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gf-hero-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto 28px;
+  line-height: 1.7;
+}
+
+.gf-hero-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.gf-hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.gf-hero-stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.gf-hero-stat-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.gf-hero-stat-sep {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+}
+
+/* ===== How It Works ===== */
+.gf-hiw {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+}
+
+.gf-hiw-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.gf-hiw-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gf-hiw-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.gf-hiw-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.gf-hiw-card {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  text-align: center;
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.gf-hiw-card:hover {
+  border-color: var(--border-light);
+  transform: translateY(-2px);
+}
+
+.gf-hiw-card-icon {
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.gf-hiw-card-num {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.gf-hiw-card-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.gf-hiw-card-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Tech tags */
+.gf-hiw-tech {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.gf-hiw-tech-item {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.gf-hiw-tech-sep {
+  color: var(--text-muted);
+}
+
+/* ===== Capabilities ===== */
+.gf-capabilities {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.gf-cap-section-header {
+  margin-bottom: 16px;
+}
+
+.gf-cap-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gf-cap-section-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Vulnerability type cards */
+.gf-cap-vulns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.gf-cap-vuln-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.gf-cap-vuln-card:hover {
+  border-color: var(--border-light);
+  transform: translateY(-2px);
+}
+
+.gf-cap-vuln-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.gf-cap-vuln-icon {
+  font-size: 1.5rem;
+}
+
+.gf-cap-vuln-severity {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 2px 10px;
+}
+
+.gf-cap-vuln-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.gf-cap-vuln-tag {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 8px;
+}
+
+.gf-cap-vuln-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Feature cards */
+.gf-cap-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.gf-cap-feat-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: border-color var(--transition);
+}
+
+.gf-cap-feat-card:hover {
+  border-color: var(--border-light);
+}
+
+.gf-cap-feat-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.gf-cap-feat-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.gf-cap-feat-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  /* Hero */
+  .gf-hero {
+    padding: 32px 16px 28px;
+  }
+
+  .gf-hero-title {
+    font-size: 1.5rem;
+  }
+
+  .gf-hero-desc {
+    font-size: 0.82rem;
+    margin-bottom: 20px;
+  }
+
+  .gf-hero-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .gf-hero-stat {
+    padding: 0 16px;
+  }
+
+  .gf-hero-stat-value {
+    font-size: 1.1rem;
+  }
+
+  .gf-hero-stat-sep {
+    height: 24px;
+  }
+
+  /* How It Works */
+  .gf-hiw {
+    padding: 20px;
+  }
+
+  .gf-hiw-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .gf-hiw-card {
+    padding: 16px 12px;
+  }
+
+  .gf-hiw-card-icon {
+    font-size: 1.5rem;
+  }
+
+  .gf-hiw-card-title {
+    font-size: 0.85rem;
+  }
+
+  .gf-hiw-card-desc {
+    font-size: 0.72rem;
+  }
+
+  /* Capabilities */
+  .gf-cap-vulns {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .gf-cap-features {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .gf-cap-feat-card {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Hero */
+  .gf-hero {
+    padding: 24px 12px 20px;
+  }
+
+  .gf-hero-badge {
+    font-size: 0.6rem;
+    padding: 3px 10px;
+  }
+
+  .gf-hero-title {
+    font-size: 1.25rem;
+  }
+
+  .gf-hero-desc {
+    font-size: 0.78rem;
+  }
+
+  .gf-hero-stats {
+    gap: 4px;
+  }
+
+  .gf-hero-stat {
+    padding: 0 10px;
+  }
+
+  .gf-hero-stat-value {
+    font-size: 1rem;
+  }
+
+  .gf-hero-stat-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.5px;
+  }
+
+  .gf-hero-stat-sep {
+    height: 20px;
+  }
+
+  /* How It Works */
+  .gf-hiw {
+    padding: 16px;
+  }
+
+  .gf-hiw-title {
+    font-size: 1rem;
+  }
+
+  .gf-hiw-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .gf-hiw-card {
+    padding: 12px 10px;
+  }
+
+  .gf-hiw-card-icon {
+    font-size: 1.3rem;
+    margin-bottom: 6px;
+  }
+
+  .gf-hiw-card-title {
+    font-size: 0.78rem;
+    margin-bottom: 4px;
+  }
+
+  .gf-hiw-card-desc {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+  .gf-hiw-tech {
+    gap: 6px;
+    margin-top: 14px;
+  }
+
+  .gf-hiw-tech-item {
+    font-size: 0.68rem;
+  }
+
+  /* Capabilities */
+  .gf-cap-vulns {
+    grid-template-columns: 1fr;
+  }
+
+  .gf-cap-vuln-card {
+    padding: 14px;
+  }
+
+  .gf-cap-features {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .gf-cap-feat-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .gf-cap-section-title {
+    font-size: 0.95rem;
+  }
+}

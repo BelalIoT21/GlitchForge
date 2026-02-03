@@ -18,9 +18,10 @@ GlitchForge is an AI-enhanced vulnerability scanner that integrates traditional 
 
 **Key Contributions:**
 - Automated vulnerability detection for SQL Injection, XSS, and CSRF
-- ML-based risk prediction with explainable AI
+- ML-based risk prediction with explainable AI (SHAP + LIME)
 - Intelligent prioritization engine for remediation planning
-- Production-ready REST API with React dashboard
+- Professional React dashboard with tabbed vulnerability cards, interactive risk gauges, and PDF report generation
+- Production-ready REST API with real-time backend health monitoring
 
 ---
 
@@ -38,7 +39,7 @@ GlitchForge/
 │   │   ├── routes/                        # API Endpoints
 │   │   │   ├── __init__.py
 │   │   │   ├── health.py                  # GET /health, GET /api/status
-│   │   │   └── scan.py                    # POST /api/scan, POST /api/quick-scan
+│   │   │   └── scan.py                    # POST /api/scan
 │   │   │
 │   │   ├── services/                      # Business Logic Layer
 │   │   │   ├── __init__.py
@@ -108,25 +109,68 @@ GlitchForge/
 └── frontend/                              # React Dashboard
     ├── src/
     │   ├── main.tsx                       # React entry point
-    │   ├── App.tsx                        # Root component
-    │   ├── styles.css                     # Global styles (dark theme)
+    │   ├── App.tsx                        # Root component (layout + centralized deduplication)
     │   │
     │   ├── api/
-    │   │   ├── client.ts                  # Axios API client
+    │   │   ├── client.ts                  # Axios API client (5s health timeout, no-cache)
     │   │   └── types.ts                   # TypeScript interfaces
     │   │
-    │   └── components/
-    │       ├── Header.tsx                 # Application header
-    │       ├── ScanForm.tsx               # Scan configuration form
-    │       ├── StatsBar.tsx               # Statistics display
-    │       ├── VulnCard.tsx               # Vulnerability card component
-    │       └── ResultsList.tsx            # Results list container
+    │   ├── components/
+    │   │   ├── layout/
+    │   │   │   ├── TopBar.tsx             # Logo, tagline, GitHub link, status, Export PDF
+    │   │   │   └── Footer.tsx             # Project info and credits
+    │   │   │
+    │   │   ├── scan/
+    │   │   │   ├── ScanInput.tsx          # URL input, scan type chips
+    │   │   │   └── ScanProgress.tsx       # Animated scanning indicator
+    │   │   │
+    │   │   ├── dashboard/
+    │   │   │   ├── DashboardOverview.tsx  # Summary stat cards
+    │   │   │   └── SeverityBreakdown.tsx  # Severity distribution bar
+    │   │   │
+    │   │   ├── vulnerability/
+    │   │   │   ├── VulnList.tsx           # Sortable vulnerability list
+    │   │   │   ├── VulnCard.tsx           # Tabbed card (severity + type header)
+    │   │   │   ├── VulnOverview.tsx       # Tab: where + what
+    │   │   │   ├── RiskAnalysis.tsx       # Tab: SVG gauge, CVSS bars, ML factors
+    │   │   │   ├── XAIInsights.tsx        # Tab: SHAP/LIME visualizations
+    │   │   │   └── Remediation.tsx        # Tab: numbered steps, CWE refs
+    │   │   │
+    │   │   ├── report/
+    │   │   │   └── ReportGenerator.tsx    # Professional PDF (cover, metrics, disclaimer)
+    │   │   │
+    │   │   ├── info/
+    │   │   │   ├── HowItWorks.tsx         # 4-step pipeline explainer
+    │   │   │   └── ScanHistory.tsx        # Session-based scan history
+    │   │   │
+    │   │   └── ui/
+    │   │       ├── Badge.tsx              # Severity badge component
+    │   │       ├── ProgressBar.tsx        # Score/progress bar
+    │   │       └── Tabs.tsx               # Reusable tab component
+    │   │
+    │   └── styles/                        # Modular CSS (8 files)
+    │       ├── globals.css                # Variables, reset, typography
+    │       ├── layout.css                 # TopBar, Footer
+    │       ├── scan.css                   # Scan input, progress animation
+    │       ├── dashboard.css              # Stats cards, severity chart
+    │       ├── vulnerability.css          # Cards, tabs, risk analysis, remediation
+    │       ├── xai.css                    # SHAP/LIME bar charts
+    │       ├── report.css                 # Report button, generating overlay
+    │       └── info.css                   # How it works, scan history
     │
     ├── public/                            # Static assets
+    │   ├── favicon-16.png                 # Favicon (16px)
+    │   ├── favicon-32.png                 # Favicon (32px)
+    │   ├── favicon-48.png                 # Favicon (48px)
+    │   ├── favicon-64.png                 # Favicon (64px)
+    │   ├── favicon-128.png                # Favicon (128px)
+    │   ├── favicon-192.png                # Favicon (192px)
+    │   └── favicon.svg                    # Favicon SVG source
+    │
     ├── vite.config.ts                     # Vite configuration (dev proxy)
     ├── package.json                       # Node dependencies
     ├── tsconfig.json                      # TypeScript configuration
-    └── index.html                         # HTML entry point
+    └── index.html                         # HTML entry point (multi-size favicon refs)
 ```
 
 ---
@@ -177,8 +221,7 @@ Multi-stage AI-enhanced pipeline:
 | Metric | Old Scanner | New Scanner | Improvement |
 |--------|------------|-------------|-------------|
 | testphp.vulnweb.com | 170-213s | 7.4s | **23-29x faster** |
-| google.com | 16.6s + false positives | 16.6s, 0 vulns | **Accurate** |
-| gmail.com (with params) | 174s + false positives | 22.9s, 0 vulns | **7.6x faster** |
+| Complex URLs (many params) | 174s | 22.9s | **7.6x faster** |
 | SQL Payloads | 11 (4 types) | 4 (error-based only) | **Simplified** |
 | XSS Payloads | 6 (3 types) | 4 (reflected only) | **Simplified** |
 
@@ -282,7 +325,6 @@ Content-Type: application/json
   "scan_time": 7.4,
   "risk_scores": [
     {
-      "vulnerability_id": "SCAN-4821",
       "risk_score": 87.9,
       "risk_level": "Critical",
       "where": { "url": "...", "parameter": "id" },
@@ -297,6 +339,8 @@ Content-Type: application/json
   }
 }
 ```
+
+**Note:** Results are deduplicated by URL + parameter, keeping the highest risk score for each unique combination.
 
 ---
 
@@ -351,7 +395,7 @@ Why: This page has injectable parameters
 ```bash
 ✅ http://testphp.vulnweb.com/artists.php?artist=1
 ✅ http://testphp.vulnweb.com/listproducts.php?cat=1
-✅ http://example.com/login.php?user=test
+✅ http://localhost/dvwa/vulnerabilities/sqli/?id=1
 ❌ http://testphp.vulnweb.com (just the homepage)
 ```
 
@@ -363,15 +407,14 @@ Why: This page has injectable parameters
 | **XSS** | Input reflection in response | ✅ Required (e.g., ?search=test) |
 | **CSRF** | Form token protection | ❌ No parameters needed |
 
-**3. Expected Results for Common Sites**
+**3. Expected Results for Test Sites**
 
 | Site | Expected Result | Why |
 |------|----------------|-----|
 | testphp.vulnweb.com/artists.php | 3 vulns (SQL+XSS+CSRF) | Deliberately vulnerable test site |
-| google.com | 0 vulnerabilities | Production site, properly secured |
-| youtube.com | 0 vulnerabilities | Production site, properly secured |
-| mail.google.com | 0 vulnerabilities | Modern protection mechanisms |
-| localhost development | Varies | Depends on your security implementation |
+| DVWA (localhost) | Multiple vulns | Deliberately vulnerable training app |
+| WebGoat (localhost) | Multiple vulns | OWASP vulnerable training app |
+| Your local development | Varies | Depends on your security implementation |
 
 **See test URLs in the [🎯 Test URLs for Scanner Validation](#-test-urls-for-scanner-validation) section.**
 
@@ -401,9 +444,9 @@ Example: SQL Injection
 python -m app.services.engine --url http://testphp.vulnweb.com/artists.php?artist=1
 # Expected: 3 vulnerabilities (SQL, XSS, CSRF) in ~7 seconds
 
-# Secure targets (no false positives)
-python -m app.services.engine --url https://www.google.com/search?q=test
-# Expected: 0 vulnerabilities in ~16 seconds
+# Local DVWA testing
+python -m app.services.engine --url http://localhost/dvwa/vulnerabilities/sqli/?id=1
+# Expected: Multiple vulnerabilities depending on DVWA security level
 ```
 
 ### 🎯 Test URLs for Scanner Validation
@@ -426,26 +469,14 @@ http://testphp.vulnweb.com/guestbook.php
 # Expected: 1 vulnerability (CSRF) in ~15 seconds
 ```
 
-#### False Positive Testing (Should Show 0 Vulnerabilities)
-
-```bash
-# Google (production site - properly secured)
-https://google.com
-# Expected: 0 vulnerabilities in ~10 seconds
-
-# YouTube (production site - properly secured)
-https://youtube.com
-# Expected: 0 vulnerabilities in ~12 seconds
-```
-
 #### Quick Testing Checklist
 
 | URL | Expected Result | Purpose |
 |-----|-----------------|---------|
 | `http://testphp.vulnweb.com/artists.php?artist=1` | 3 vulnerabilities | Verify scanner finds SQL + XSS + CSRF |
 | `http://testphp.vulnweb.com/listproducts.php?cat=1` | 2-3 vulnerabilities | Verify SQL detection |
-| `https://google.com` | 0 vulnerabilities | Verify no false positives |
-| `https://youtube.com` | 0 vulnerabilities | Verify no false positives |
+| `http://testphp.vulnweb.com/guestbook.php` | 1 vulnerability | Verify CSRF detection |
+| `http://localhost/dvwa/` | Multiple vulnerabilities | Test against local DVWA instance |
 
 ### Performance Metrics
 
@@ -469,8 +500,53 @@ https://youtube.com
 | **XAI** | SHAP, LIME |
 | **Data** | pandas, numpy, NIST NVD API |
 | **Security** | Requests, BeautifulSoup4, OWASP methodologies |
-| **Frontend** | React 18, TypeScript, Vite, Material-UI |
+| **Frontend** | React 18, TypeScript, Vite, jsPDF |
 | **Deployment** | Waitress (production), Flask dev server (development) |
+
+---
+
+## 🖥️ Frontend Dashboard
+
+The React frontend provides a professional dark-themed dashboard for interacting with the scanner.
+
+### Dashboard Features
+
+| Feature | Description |
+|---------|-------------|
+| **TopBar** | Logo, centered tagline (responsive), GitHub link, offline status indicator (5s polling), Export PDF button |
+| **Scan Input** | URL input with toggleable scan type chips (SQL, XSS, CSRF) |
+| **Dashboard Overview** | Summary stat cards (Total, Critical, High, Medium, Low, ML Agreement, Scan Time) |
+| **Severity Breakdown** | Stacked horizontal bar showing severity distribution with legend |
+| **Sortable Vulnerability List** | Sort by risk score (high/low) or alphabetically, auto-deduplicated |
+| **Tabbed Vulnerability Cards** | 4-tab layout: Overview, Risk Analysis, XAI Insights, Remediation |
+| **How It Works** | 4-step pipeline explainer (Scanning → ML → XAI → Report) |
+| **Session Scan History** | Tracks scans performed during the session with URL, vuln count, max risk |
+| **PDF Report Download** | Professional PDF with cover page, CVSS metrics, disclaimer, and credits |
+
+### Vulnerability Card Tabs
+
+**Overview** — Displays vulnerability location (URL, parameter, HTTP method) and classification (type, CWE ID, payload, evidence, description).
+
+**Risk Analysis** — SVG half-circle gauge for risk score, 2x2 metric cards (risk level, priority, model agreement, confidence), CVSS metric bars (base, exploitability, impact), numbered risk factor cards, ML explanation, and exploit warning banner.
+
+**XAI Insights** — Bidirectional bar charts for SHAP and LIME feature contributions, showing which factors pushed the risk score up or down with human-readable labels.
+
+**Remediation** — Severity-coloured context banner, numbered remediation steps with colour-coded circles, and CWE reference cards (MITRE, OWASP).
+
+### PDF Report
+
+The downloadable PDF report includes:
+- Dark branded cover page with scan metadata and formatted date
+- Executive summary with 4 metric cards (Vulnerabilities, Avg Risk Score, ML Agreement, Scan Duration)
+- Per-vulnerability cards with:
+  - Severity pill badge + vulnerability type + risk score
+  - CVSS metrics row (Base Score, Exploitability, Impact, Confidence)
+  - Location details (URL, parameter, HTTP method)
+  - CWE reference in monospace
+  - Remediation guidance
+- Disclaimer section about ML-based analysis limitations
+- Student credits (Bilal Almshmesh, University of East London)
+- Page footers with confidentiality notice and page numbers
 
 ---
 
@@ -478,7 +554,7 @@ https://youtube.com
 
 1. **Scanner Optimization**
    - 23-29x performance improvement through architectural redesign
-   - Zero false positives on production systems (Google, Gmail)
+   - Zero false positives on secure test configurations
    - Smart parameter filtering reduces unnecessary testing
 
 2. **ML-Based Risk Assessment**

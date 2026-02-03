@@ -16,7 +16,7 @@ from pathlib import Path
 import logging
 
 # Import config
-from ..utils.config import Config
+from app.config import Config
 
 logger = logging.getLogger(__name__)
 

@@ -17,7 +17,7 @@ from scipy.spatial.distance import cosine
 from scipy.stats import spearmanr
 
 # Import config
-from ..utils.config import Config
+from app.config import Config
 
 logger = logging.getLogger(__name__)
 

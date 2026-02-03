@@ -19,7 +19,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 # Import config
-from ..utils.config import Config
+from app.config import Config
 
 logger = logging.getLogger(__name__)
 

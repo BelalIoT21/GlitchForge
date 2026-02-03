@@ -1,21 +1,19 @@
 import { useState, type FormEvent } from 'react'
 
-interface ScanFormProps {
+interface ScanInputProps {
   onSubmit: (url: string, scanTypes: string[]) => void
   loading: boolean
 }
 
 const ALL_TYPES = ['sql', 'xss', 'csrf']
 
-export default function ScanForm({ onSubmit, loading }: ScanFormProps) {
+export default function ScanInput({ onSubmit, loading }: ScanInputProps) {
   const [url, setUrl] = useState('')
   const [scanTypes, setScanTypes] = useState<string[]>(ALL_TYPES)
 
   const toggleType = (type: string) => {
     setScanTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     )
   }
 
@@ -26,34 +24,38 @@ export default function ScanForm({ onSubmit, loading }: ScanFormProps) {
   }
 
   return (
-    <form className="scan-form" onSubmit={handleSubmit}>
-      <div className="form-row">
+    <form className="gf-scan" onSubmit={handleSubmit}>
+      <div className="gf-scan-row">
         <input
           type="text"
-          className="url-input"
+          className="gf-scan-input"
           placeholder="Enter target URL (e.g. http://testphp.vulnweb.com)"
           value={url}
           onChange={e => setUrl(e.target.value)}
           disabled={loading}
           autoFocus
         />
-        <button type="submit" className="scan-btn" disabled={loading || !url.trim() || scanTypes.length === 0}>
-          {loading ? 'Scanning...' : 'Scan'}
+        <button
+          type="submit"
+          className="gf-scan-submit"
+          disabled={loading || !url.trim() || scanTypes.length === 0}
+        >
+          {loading ? 'Scanning...' : 'Scan Target'}
         </button>
       </div>
 
-      <div className="form-options">
-        <div className="scan-types">
-          <span className="options-label">Scan Types:</span>
+      <div className="gf-scan-options">
+        <div className="gf-scan-group">
+          <span className="gf-scan-label">Scan Types</span>
           {ALL_TYPES.map(type => (
             <button
               key={type}
               type="button"
-              className={`type-toggle ${scanTypes.includes(type) ? 'active' : ''}`}
+              className={`gf-chip ${scanTypes.includes(type) ? 'active' : ''}`}
               onClick={() => toggleType(type)}
               disabled={loading}
             >
-              {type.toUpperCase()}
+              {type}
             </button>
           ))}
         </div>

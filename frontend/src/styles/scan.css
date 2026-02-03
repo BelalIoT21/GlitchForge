@@ -1,0 +1,265 @@
+/* ===== Scan Input ===== */
+.gf-scan {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.gf-scan-row {
+  display: flex;
+  gap: 12px;
+}
+
+.gf-scan-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+}
+
+.gf-scan-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.gf-scan-input::placeholder {
+  color: var(--text-muted);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.gf-scan-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gf-scan-submit {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 32px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.gf-scan-submit:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+
+.gf-scan-submit:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.gf-scan-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Options row */
+.gf-scan-options {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  align-items: center;
+}
+
+.gf-scan-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gf-scan-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.gf-chip {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gf-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.gf-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.gf-chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Mode toggle */
+.gf-mode-toggle {
+  display: flex;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.gf-mode-option {
+  padding: 6px 16px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: transparent;
+}
+
+.gf-mode-option:hover:not(.active):not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.gf-mode-option.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.gf-mode-option:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ===== Scan Progress ===== */
+.gf-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 20px;
+}
+
+.gf-progress-rings {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.gf-progress-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid transparent;
+}
+
+.gf-progress-ring-outer {
+  inset: 0;
+  border-top-color: var(--accent);
+  animation: gf-spin 1s linear infinite;
+}
+
+.gf-progress-ring-inner {
+  inset: 10px;
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  opacity: 0.5;
+  animation: gf-spin 0.6s linear infinite reverse;
+}
+
+@keyframes gf-spin {
+  to { transform: rotate(360deg); }
+}
+
+.gf-progress-text {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.gf-progress-url {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.gf-progress-dots::after {
+  content: '';
+  animation: gf-dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes gf-dots {
+  0%  { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .gf-scan {
+    padding: 16px;
+  }
+
+  .gf-scan-row {
+    flex-direction: column;
+  }
+
+  .gf-scan-submit {
+    padding: 12px;
+    width: 100%;
+  }
+
+  .gf-scan-options {
+    gap: 12px;
+  }
+
+  .gf-scan-group {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .gf-scan {
+    padding: 12px;
+  }
+
+  .gf-scan-input {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+  }
+
+  .gf-chip {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+  }
+
+  .gf-mode-option {
+    padding: 5px 12px;
+    font-size: 0.72rem;
+  }
+}

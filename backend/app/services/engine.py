@@ -55,37 +55,103 @@ from app.core.prioritization.engine import RiskPrioritizationEngine
 from app.core.prioritization.manager import PriorityQueueManager
 from app.core.prioritization.data_models import RiskScore
 
+# Stage 3: XAI imports
+from app.core.xai.shap_explainer import SHAPExplainer
+from app.core.xai.lime_explainer import LIMEExplainer
+
 # Utilities
 from app.utils.logger import get_logger
 
 # Config
-from app.config import SCANNER_CONFIG
+from app.config import SCANNER_CONFIG, X_TRAIN_PATH, PROCESSED_DATA_DIR
 
 
-def _get_vuln_metadata(vuln_type: VulnerabilityType):
-    """Get description, CWE ID, and remediation for vulnerability type"""
-    metadata = {
-        VulnerabilityType.SQL_INJECTION: {
-            'description': "Application is vulnerable to SQL Injection attacks. Attackers can manipulate database queries to access or modify data.",
-            'cwe_id': "CWE-89",
-            'remediation': "Use parameterized queries or prepared statements. Never concatenate user input directly into SQL queries. Implement input validation and sanitization."
-        },
-        VulnerabilityType.XSS: {
-            'description': "Application is vulnerable to Cross-Site Scripting (XSS). Attackers can inject malicious scripts into web pages viewed by users.",
-            'cwe_id': "CWE-79",
-            'remediation': "Encode all user input before displaying it. Use Content Security Policy (CSP) headers. Implement proper input validation and output encoding."
-        },
-        VulnerabilityType.CSRF: {
-            'description': "Application lacks CSRF protection. Attackers can trick users into performing unwanted actions.",
-            'cwe_id': "CWE-352",
-            'remediation': "Implement CSRF tokens for all state-changing operations. Use SameSite cookie attribute. Verify Origin and Referer headers."
+# Human-readable names for ML feature columns
+FEATURE_DISPLAY_NAMES = {
+    'cvss_base_score': 'CVSS Base Score',
+    'cvss_exploitability_score': 'Exploitability Score',
+    'cvss_impact_score': 'Impact Score',
+    'has_exploit': 'Known Exploit Exists',
+    'age_days': 'Vulnerability Age (days)',
+    'days_since_modified': 'Days Since Last Update',
+    'modification_span_days': 'Modification History Span',
+    'affected_products_count': 'Affected Products Count',
+    'exploit_cvss_interaction': 'Exploit + CVSS Interaction',
+    'total_impact_score': 'Total Impact Score',
+    'attack_vector_score': 'Attack Vector Score',
+    'attack_complexity_score': 'Attack Complexity Score',
+    'privileges_required_score': 'Privileges Required',
+    'user_interaction_score': 'User Interaction Required',
+    'confidentiality_impact_score': 'Confidentiality Impact',
+    'integrity_impact_score': 'Integrity Impact',
+    'availability_impact_score': 'Availability Impact',
+    'cvss_severity_encoded': 'Severity Level',
+    'cvss_scope_encoded': 'Scope (Changed/Unchanged)',
+    'is_critical': 'Critical Severity',
+    'is_high': 'High Severity',
+    'is_medium': 'Medium Severity',
+    'high_exploitability': 'Highly Exploitable',
+    'high_impact': 'High Impact',
+    'single_product': 'Single Product Affected',
+    'multiple_products': 'Multiple Products Affected',
+    'widespread': 'Widespread Impact',
+    'publish_quarter': 'Publication Quarter',
+}
+
+
+def _get_vuln_metadata(vuln_type: VulnerabilityType, vuln: 'VulnerabilityResult' = None):
+    """Get description, CWE ID, and specific remediation for a vulnerability"""
+
+    # Build specific remediation based on actual vulnerability details
+    if vuln and vuln_type == VulnerabilityType.SQL_INJECTION:
+        remediation = (
+            f"The parameter '{vuln.parameter}' on this page is vulnerable to SQL Injection.\n"
+            f"1. Use parameterized queries (prepared statements) for any database query that includes the '{vuln.parameter}' parameter.\n"
+            f"2. Apply server-side input validation on '{vuln.parameter}' — reject unexpected characters like quotes, dashes, and semicolons.\n"
+            f"3. Use an ORM (e.g. SQLAlchemy, Django ORM) instead of raw SQL to handle this input.\n"
+            f"4. Apply least-privilege database permissions so the web application account cannot DROP or ALTER tables."
+        )
+    elif vuln and vuln_type == VulnerabilityType.XSS:
+        remediation = (
+            f"The parameter '{vuln.parameter}' on this page reflects user input without proper encoding.\n"
+            f"1. HTML-encode all output of '{vuln.parameter}' before rendering it in the page — use your framework's auto-escaping (e.g. Jinja2, React JSX).\n"
+            f"2. Add a Content-Security-Policy header (e.g. script-src 'self') to block inline script execution.\n"
+            f"3. Validate and sanitize '{vuln.parameter}' on the server side — strip or reject HTML tags and event handlers.\n"
+            f"4. Use HttpOnly and Secure flags on session cookies to limit what stolen scripts can access."
+        )
+    elif vuln and vuln_type == VulnerabilityType.CSRF:
+        remediation = (
+            f"This page at '{vuln.url}' lacks CSRF protection on its forms.\n"
+            f"1. Add a unique CSRF token to every form on this page and validate it server-side on submission.\n"
+            f"2. Set the SameSite attribute on session cookies to 'Strict' or 'Lax' to prevent cross-origin requests.\n"
+            f"3. Verify the Origin and Referer headers on state-changing requests to ensure they come from your domain.\n"
+            f"4. Use your framework's built-in CSRF middleware (e.g. Django csrf_protect, Express csurf)."
+        )
+    else:
+        # Fallback generic
+        metadata_generic = {
+            VulnerabilityType.SQL_INJECTION: "Use parameterized queries or prepared statements. Never concatenate user input directly into SQL queries.",
+            VulnerabilityType.XSS: "Encode all user input before displaying it. Use Content Security Policy (CSP) headers.",
+            VulnerabilityType.CSRF: "Implement CSRF tokens for all state-changing operations. Use SameSite cookie attribute.",
         }
+        remediation = metadata_generic.get(vuln_type, "Follow security best practices.")
+
+    descriptions = {
+        VulnerabilityType.SQL_INJECTION: "Application is vulnerable to SQL Injection attacks. Attackers can manipulate database queries to access or modify data.",
+        VulnerabilityType.XSS: "Application is vulnerable to Cross-Site Scripting (XSS). Attackers can inject malicious scripts into web pages viewed by users.",
+        VulnerabilityType.CSRF: "Application lacks CSRF protection. Attackers can trick users into performing unwanted actions.",
     }
-    return metadata.get(vuln_type, {
-        'description': "Security vulnerability detected",
-        'cwe_id': "CWE-000",
-        'remediation': "Follow security best practices"
-    })
+    cwe_ids = {
+        VulnerabilityType.SQL_INJECTION: "CWE-89",
+        VulnerabilityType.XSS: "CWE-79",
+        VulnerabilityType.CSRF: "CWE-352",
+    }
+
+    return {
+        'description': descriptions.get(vuln_type, "Security vulnerability detected"),
+        'cwe_id': cwe_ids.get(vuln_type, "CWE-000"),
+        'remediation': remediation
+    }
 
 
 class GlitchForgeEngine:
@@ -121,8 +187,16 @@ class GlitchForgeEngine:
         self.feature_engineer = None
         self.prioritization_engine = None
 
+        # XAI explainers (loaded once)
+        self.shap_explainer = None
+        self.lime_explainer = None
+        self.feature_names = None
+
         # Load models at startup
         self._load_models()
+
+        # Initialize XAI explainers
+        self._init_xai_explainers()
 
         # Initialize prioritization engine
         self.prioritization_engine = RiskPrioritizationEngine()
@@ -201,6 +275,59 @@ University of East London - BSc Computer Science
         else:
             self.logger.warning("Models not found. Using fallback mode.")
             self.logger.warning("   Train models with: python -m app.core.ml.stage2_train")
+
+    def _init_xai_explainers(self):
+        """Initialize SHAP and LIME explainers once at startup using training data"""
+        if not self.rf_model:
+            self.logger.warning("RF model not loaded - XAI explainers skipped")
+            return
+
+        try:
+            # Load feature names
+            feature_names_path = PROCESSED_DATA_DIR / 'feature_names.txt'
+            if feature_names_path.exists():
+                with open(feature_names_path, 'r') as f:
+                    self.feature_names = [line.strip() for line in f if line.strip()]
+            else:
+                # Fallback: use model's feature names
+                self.feature_names = list(self.rf_model.feature_names_in_)
+
+            self.logger.info(f"Loaded {len(self.feature_names)} feature names for XAI")
+
+            # Load training data for background samples
+            X_train = None
+            if X_TRAIN_PATH.exists():
+                X_train = pd.read_csv(X_TRAIN_PATH).values
+                self.logger.info(f"Loaded X_train ({X_train.shape}) for XAI background")
+            else:
+                self.logger.warning("X_train.csv not found - XAI explainers will use limited background")
+
+            # Initialize SHAP (TreeExplainer for RF - fast and exact)
+            self.shap_explainer = SHAPExplainer(
+                model=self.rf_model,
+                feature_names=self.feature_names,
+                model_type='random_forest',
+                background_samples=100
+            )
+            if X_train is not None:
+                self.shap_explainer.create_explainer(X_train)
+            self.logger.info("SHAP explainer initialized (TreeExplainer)")
+
+            # Initialize LIME
+            self.lime_explainer = LIMEExplainer(
+                model=self.rf_model,
+                feature_names=self.feature_names,
+                class_names=['Low Risk', 'Medium Risk', 'High Risk'],
+                mode='classification'
+            )
+            if X_train is not None:
+                self.lime_explainer.create_explainer(X_train)
+            self.logger.info("LIME explainer initialized")
+
+        except Exception as e:
+            self.logger.error(f"Error initializing XAI explainers: {e}")
+            self.shap_explainer = None
+            self.lime_explainer = None
 
     def full_scan(
         self,
@@ -305,14 +432,105 @@ University of East London - BSc Computer Science
             nn_proba = self.nn_model.predict(X_sample, verbose=0)[0]
             nn_confidence = float(max(nn_proba))
 
-            # Generate explanation
-            feature_importance = {
-                'cvss_base_score': 0.35,
-                'cvss_exploitability_score': 0.25,
-                'cvss_impact_score': 0.20,
-                'has_exploit': 0.12,
-                'age_days': 0.08
-            }
+            # Generate real XAI explanations
+            feature_importance = {}
+            shap_data = None
+            lime_data = None
+
+            X_numpy = X_sample.values
+
+            # SHAP explanation (fast - TreeExplainer)
+            if self.shap_explainer and self.shap_explainer.explainer:
+                try:
+                    shap_values_raw = self.shap_explainer.explainer.shap_values(X_numpy)
+
+                    # Extract positive class SHAP values
+                    if isinstance(shap_values_raw, list) and len(shap_values_raw) > 1:
+                        sv = shap_values_raw[1][0]  # Positive class, first sample
+                    elif isinstance(shap_values_raw, np.ndarray) and shap_values_raw.ndim == 3:
+                        sv = shap_values_raw[0, :, 1]
+                    else:
+                        sv = shap_values_raw[0] if shap_values_raw.ndim == 2 else shap_values_raw
+
+                    # Build feature importance from SHAP
+                    abs_shap = np.abs(sv)
+                    total = abs_shap.sum() if abs_shap.sum() > 0 else 1.0
+                    for i, fname in enumerate(self.feature_names):
+                        feature_importance[fname] = round(float(abs_shap[i] / total), 4)
+
+                    # Build SHAP data for frontend
+                    base_val = self.shap_explainer.explainer.expected_value
+                    if isinstance(base_val, (list, np.ndarray)):
+                        base_val = base_val[1] if len(base_val) > 1 else base_val[0]
+
+                    # Top contributing features (sorted by |SHAP|)
+                    sorted_indices = np.argsort(np.abs(sv))[::-1]
+                    top_features = []
+                    for i in sorted_indices[:10]:
+                        raw_name = self.feature_names[i]
+                        display_name = FEATURE_DISPLAY_NAMES.get(raw_name, raw_name.replace('_', ' ').title())
+                        pct = round(float(abs_shap[i] / total) * 100, 1)
+                        direction = 'increases' if sv[i] > 0 else 'decreases'
+                        top_features.append({
+                            'feature': display_name,
+                            'contribution_pct': pct,
+                            'direction': direction,
+                            'description': f"{display_name} {direction} risk by {pct}%"
+                        })
+
+                    shap_data = {
+                        'method': 'Feature contributions to risk prediction',
+                        'summary': f"Top risk driver: {top_features[0]['feature']} ({top_features[0]['contribution_pct']}% contribution)" if top_features else '',
+                        'features': top_features
+                    }
+                except Exception as e:
+                    self.logger.warning(f"SHAP explanation failed: {e}")
+
+            # LIME explanation
+            if self.lime_explainer and self.lime_explainer.explainer:
+                try:
+                    lime_exp = self.lime_explainer.explain_single(
+                        X_numpy[0], num_features=10, num_samples=500
+                    )
+                    lime_dict = self.lime_explainer.get_explanation_as_dict(lime_exp)
+
+                    lime_features = []
+                    abs_total = sum(abs(w) for w in lime_dict['weights']) or 1.0
+                    for fname, weight in zip(lime_dict['features'], lime_dict['weights']):
+                        display_name = FEATURE_DISPLAY_NAMES.get(fname, fname.replace('_', ' ').title())
+                        pct = round(abs(weight) / abs_total * 100, 1)
+                        direction = 'increases' if weight > 0 else 'decreases'
+                        lime_features.append({
+                            'feature': display_name,
+                            'contribution_pct': pct,
+                            'direction': direction,
+                            'description': f"{display_name} {direction} risk by {pct}%"
+                        })
+
+                    lime_data = {
+                        'method': 'Local interpretable model explanation',
+                        'model_fit': round(float(lime_dict['score']), 4),
+                        'summary': f"Top risk driver: {lime_features[0]['feature']} ({lime_features[0]['contribution_pct']}% influence)" if lime_features else '',
+                        'features': lime_features
+                    }
+
+                    # Fill in feature_importance from LIME if SHAP didn't run
+                    if not feature_importance:
+                        abs_weights = {f: abs(w) for f, w in zip(lime_dict['features'], lime_dict['weights'])}
+                        total_w = sum(abs_weights.values()) or 1.0
+                        feature_importance = {f: round(w / total_w, 4) for f, w in abs_weights.items()}
+                except Exception as e:
+                    self.logger.warning(f"LIME explanation failed: {e}")
+
+            # Fallback if both failed
+            if not feature_importance:
+                feature_importance = {
+                    'cvss_base_score': 0.35,
+                    'cvss_exploitability_score': 0.25,
+                    'cvss_impact_score': 0.20,
+                    'has_exploit': 0.12,
+                    'age_days': 0.08
+                }
 
             explanation_text = self._generate_prediction_explanation(
                 row, feature_importance, rf_pred, rf_confidence
@@ -330,7 +548,9 @@ University of East London - BSc Computer Science
                 'cvss_impact_score': float(row['cvss_impact_score']),
                 'has_exploit': bool(row['has_exploit']),
                 'explanation_text': explanation_text,
-                'feature_importance': feature_importance
+                'feature_importance': feature_importance,
+                'shap_explanation': shap_data,
+                'lime_explanation': lime_data
             }
 
             predictions.append(prediction)
@@ -458,10 +678,15 @@ University of East London - BSc Computer Science
         # Sort by risk
         risk_scores.sort(key=lambda x: x.final_risk_score, reverse=True)
 
-        # Build lookup: vulnerability_id -> original VulnerabilityResult
+        # Build lookup: vulnerability_id -> {original_vuln, xai data}
         vuln_lookup = {}
+        xai_lookup = {}
         for pred in predictions:
             vuln_lookup[pred['vulnerability_id']] = pred['original_vuln']
+            xai_lookup[pred['vulnerability_id']] = {
+                'shap_explanation': pred.get('shap_explanation'),
+                'lime_explanation': pred.get('lime_explanation')
+            }
 
         total_time = time.time() - start_time
 
@@ -475,7 +700,11 @@ University of East London - BSc Computer Science
             'prioritization_time': round(prior_time, 2),
             'total_time': round(total_time, 2),
             'risk_scores': [
-                self._format_risk_score(rs, vuln_lookup.get(rs.vulnerability_id))
+                self._format_risk_score(
+                    rs,
+                    vuln_lookup.get(rs.vulnerability_id),
+                    xai_lookup.get(rs.vulnerability_id)
+                )
                 for rs in risk_scores
             ],
             'statistics': self._calculate_statistics(risk_scores),
@@ -540,7 +769,7 @@ University of East London - BSc Computer Science
             publish_quarter = (datetime.now().month - 1) // 3 + 1
 
             record = {
-                'cve_id': f"SCAN-{hash(vuln.url + vuln.parameter) % 10000:04d}",
+                'cve_id': f"SCAN-{hash(vuln.url + vuln.parameter + vuln.vuln_type.value) % 10000:04d}",
                 '_original_vuln': vuln,
 
                 # Base CVSS scores
@@ -593,8 +822,8 @@ University of East London - BSc Computer Science
 
         return pd.DataFrame(data)
 
-    def _format_risk_score(self, risk_score: RiskScore, original_vuln: Optional[VulnerabilityResult] = None) -> Dict:
-        """Format risk score for JSON response, including original vulnerability details"""
+    def _format_risk_score(self, risk_score: RiskScore, original_vuln: Optional[VulnerabilityResult] = None, xai_data: Optional[Dict] = None) -> Dict:
+        """Format risk score for JSON response, including original vulnerability details and XAI explanations"""
         result = {
             'vulnerability_id': risk_score.vulnerability_id,
             'risk_score': round(risk_score.final_risk_score, 2),
@@ -610,10 +839,17 @@ University of East London - BSc Computer Science
             'primary_factors': risk_score.primary_factors
         }
 
+        # Add XAI explanations (SHAP + LIME)
+        if xai_data:
+            if xai_data.get('shap_explanation'):
+                result['shap_explanation'] = xai_data['shap_explanation']
+            if xai_data.get('lime_explanation'):
+                result['lime_explanation'] = xai_data['lime_explanation']
+
         # Merge in original scanner details (where, what caused it, how to fix)
         if original_vuln:
-            # Get metadata for vulnerability type
-            metadata = _get_vuln_metadata(original_vuln.vuln_type)
+            # Get metadata for vulnerability type (with specific remediation)
+            metadata = _get_vuln_metadata(original_vuln.vuln_type, original_vuln)
 
             result['where'] = {
                 'url': original_vuln.url,

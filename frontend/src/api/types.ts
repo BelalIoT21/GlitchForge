@@ -40,6 +40,20 @@ export interface VulnFix {
   priority?: string
 }
 
+export interface XAIFeature {
+  feature: string
+  contribution_pct: number
+  direction: 'increases' | 'decreases'
+  description: string
+}
+
+export interface XAIExplanation {
+  method: string
+  summary: string
+  features: XAIFeature[]
+  model_fit?: number
+}
+
 export interface RiskScore {
   vulnerability_id: string
   risk_score: number
@@ -56,6 +70,8 @@ export interface RiskScore {
   where?: VulnWhere
   what?: VulnWhat
   how_to_fix?: VulnFix
+  shap_explanation?: XAIExplanation
+  lime_explanation?: XAIExplanation
 }
 
 export interface ScanStatistics {

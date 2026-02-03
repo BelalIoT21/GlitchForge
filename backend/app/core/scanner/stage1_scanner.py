@@ -145,9 +145,18 @@ class GlitchForgeScanner:
             severity = result.severity.value.lower()
             self.scan_summary['by_severity'][severity] += 1
         
+        # Deduplicate: keep highest-confidence result per (url, parameter)
+        seen = {}
+        for result in self.all_results:
+            key = (result.url, result.parameter)
+            if key not in seen or result.confidence > seen[key].confidence:
+                seen[key] = result
+        self.all_results = list(seen.values())
+        self.scan_summary['total_vulnerabilities'] = len(self.all_results)
+
         # Print summary
         self._print_summary()
-        
+
         return [result.to_dict() for result in self.all_results]
     
     def _print_summary(self):
