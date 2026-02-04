@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional
+from urllib.parse import urlparse
 import json
 import pandas as pd
 import numpy as np
@@ -332,7 +333,8 @@ University of East London - BSc Computer Science
     def full_scan(
         self,
         url: str,
-        scan_types: List[str] = ['sql', 'xss', 'csrf']
+        scan_types: List[str] = ['sql', 'xss', 'csrf'],
+        cookies: Dict[str, str] = None
     ) -> List[VulnerabilityResult]:
         """
         Full vulnerability scan using all payloads from config
@@ -340,11 +342,15 @@ University of East London - BSc Computer Science
         Args:
             url: Target URL
             scan_types: Types of scans to run
+            cookies: Session cookies for authenticated scanning (e.g., DVWA)
 
         Returns:
             List of vulnerabilities found
         """
-        scanner = GlitchForgeScanner(SCANNER_CONFIG)
+        config = {**SCANNER_CONFIG}
+        if cookies:
+            config['cookies'] = cookies
+        scanner = GlitchForgeScanner(config)
 
         try:
             scanner.scan_all(
@@ -359,7 +365,8 @@ University of East London - BSc Computer Science
     def quick_scan(
         self,
         url: str,
-        scan_types: List[str] = ['sql', 'xss', 'csrf']
+        scan_types: List[str] = ['sql', 'xss', 'csrf'],
+        cookies: Dict[str, str] = None
     ) -> List[VulnerabilityResult]:
         """
         Fast vulnerability scan with reduced payloads
@@ -367,6 +374,7 @@ University of East London - BSc Computer Science
         Args:
             url: Target URL
             scan_types: Types of scans to run
+            cookies: Session cookies for authenticated scanning (e.g., DVWA)
 
         Returns:
             List of vulnerabilities found
@@ -377,6 +385,8 @@ University of East London - BSc Computer Science
             'user_agent': 'GlitchForge/1.0',
             'max_payloads': 5
         }
+        if cookies:
+            quick_config['cookies'] = cookies
 
         scanner = GlitchForgeScanner(quick_config)
 
@@ -637,7 +647,8 @@ University of East London - BSc Computer Science
     def scan_and_analyze(
         self,
         url: str,
-        scan_types: List[str] = ['sql', 'xss', 'csrf']
+        scan_types: List[str] = ['sql', 'xss', 'csrf'],
+        cookies: Dict[str, str] = None
     ) -> Dict:
         """
         Complete scan and analysis pipeline
@@ -645,6 +656,7 @@ University of East London - BSc Computer Science
         Args:
             url: Target URL
             scan_types: Types of scans
+            cookies: Session cookies for authenticated scanning (e.g., DVWA)
 
         Returns:
             Complete results dictionary with explanations
@@ -653,7 +665,7 @@ University of East London - BSc Computer Science
 
         # Stage 1: Full Scan (all payloads)
         self.logger.info(f"Scanning {url}...")
-        vulnerabilities = self.full_scan(url, scan_types)
+        vulnerabilities = self.full_scan(url, scan_types, cookies)
         scan_time = time.time() - start_time
 
         if not vulnerabilities:
@@ -694,6 +706,100 @@ University of East London - BSc Computer Science
         results = {
             'success': True,
             'url': url,
+            'vulnerabilities_found': len(vulnerabilities),
+            'scan_time': round(scan_time, 2),
+            'prediction_time': round(pred_time, 2),
+            'prioritization_time': round(prior_time, 2),
+            'total_time': round(total_time, 2),
+            'risk_scores': [
+                self._format_risk_score(
+                    rs,
+                    vuln_lookup.get(rs.vulnerability_id),
+                    xai_lookup.get(rs.vulnerability_id)
+                )
+                for rs in risk_scores
+            ],
+            'statistics': self._calculate_statistics(risk_scores),
+            'timestamp': datetime.now().isoformat()
+        }
+
+        return results
+
+    def scan_site_and_analyze(
+        self,
+        base_url: str,
+        scan_types: List[str] = ['sql', 'xss', 'csrf'],
+        cookies: Dict[str, str] = None,
+        max_urls: int = 20
+    ) -> Dict:
+        """
+        Crawl a site and scan all discovered URLs with ML analysis
+
+        Args:
+            base_url: Base URL to start crawling from
+            scan_types: Types of scans
+            cookies: Session cookies for authenticated scanning
+            max_urls: Maximum number of URLs to scan
+
+        Returns:
+            Complete results dictionary with all vulnerabilities
+        """
+        start_time = time.time()
+
+        # Configure scanner with cookies
+        config = {**SCANNER_CONFIG}
+        if cookies:
+            config['cookies'] = cookies
+
+        scanner = GlitchForgeScanner(config)
+
+        # Stage 1: Crawl and scan all URLs
+        self.logger.info(f"Site scan: {base_url} (max {max_urls} URLs)")
+        scanner.scan_site(base_url, scan_types, max_urls)
+        vulnerabilities = scanner.all_results
+        scan_time = time.time() - start_time
+
+        if not vulnerabilities:
+            return {
+                'success': True,
+                'url': base_url,
+                'mode': 'site_scan',
+                'urls_scanned': len(scanner.scan_summary.get('urls_scanned', [])) or 0,
+                'vulnerabilities_found': 0,
+                'scan_time': round(scan_time, 2),
+                'message': 'No vulnerabilities found'
+            }
+
+        # Stage 2: Predict risks
+        pred_start = time.time()
+        predictions = self.predict_risks(vulnerabilities)
+        pred_time = time.time() - pred_start
+
+        # Stage 4: Prioritize
+        prior_start = time.time()
+        risk_scores = self.prioritize_vulnerabilities(predictions)
+        prior_time = time.time() - prior_start
+
+        # Sort by risk
+        risk_scores.sort(key=lambda x: x.final_risk_score, reverse=True)
+
+        # Build lookup
+        vuln_lookup = {}
+        xai_lookup = {}
+        for pred in predictions:
+            vuln_lookup[pred['vulnerability_id']] = pred['original_vuln']
+            xai_lookup[pred['vulnerability_id']] = {
+                'shap_explanation': pred.get('shap_explanation'),
+                'lime_explanation': pred.get('lime_explanation')
+            }
+
+        total_time = time.time() - start_time
+
+        # Format results
+        results = {
+            'success': True,
+            'url': base_url,
+            'mode': 'site_scan',
             'vulnerabilities_found': len(vulnerabilities),
             'scan_time': round(scan_time, 2),
             'prediction_time': round(pred_time, 2),
@@ -902,6 +1008,331 @@ University of East London - BSc Computer Science
             'model_agreement_rate': round(agreements / len(risk_scores) * 100, 1),
             'risk_levels': risk_levels,
             'remediation_priorities': priorities
+        }
+
+
+    def scan_and_analyze_with_progress(
+        self,
+        url: str,
+        scan_types: List[str] = ['sql', 'xss', 'csrf'],
+        cookies: Dict[str, str] = None,
+        scan_id: str = None
+    ) -> Dict:
+        """
+        Complete scan with progress tracking
+
+        Args:
+            url: Target URL
+            scan_types: Types of scans
+            cookies: Session cookies
+            scan_id: Progress tracking ID
+
+        Returns:
+            Complete results dictionary
+        """
+        from app.services.progress import get_progress_manager, ScanPhase
+
+        pm = get_progress_manager()
+        start_time = time.time()
+
+        # Phase: Scanning
+        pm.set_phase(scan_id, ScanPhase.SCANNING,
+                     current_url=url,
+                     total_urls=1,
+                     current_url_index=1)
+
+        # Configure scanner
+        config = {**SCANNER_CONFIG}
+        if cookies:
+            config['cookies'] = cookies
+        scanner = GlitchForgeScanner(config)
+
+        # Scan with progress updates for each scanner type
+        all_vulnerabilities = []
+        for i, scan_type in enumerate(scan_types):
+            pm.update(scan_id, current_scanner=scan_type.upper())
+            scanner.scan_all(url=url, scan_types=[scan_type])
+            all_vulnerabilities.extend(scanner.all_results)
+
+        vulnerabilities = all_vulnerabilities
+        scan_time = time.time() - start_time
+        raw_count = len(vulnerabilities)
+
+        # Deduplicate: keep highest confidence per (url_path, parameter, vuln_type)
+        seen = {}
+        for v in vulnerabilities:
+            parsed = urlparse(v.url)
+            key = (parsed.path, v.parameter, v.vuln_type.value)
+            if key not in seen or v.confidence > seen[key].confidence:
+                seen[key] = v
+        vulnerabilities = list(seen.values())
+        unique_count = len(vulnerabilities)
+        pm.update(scan_id, vulns_found=unique_count)
+
+        self.logger.info(f"Found {raw_count} vulnerabilities, {unique_count} unique after deduplication")
+
+        # Count by type and severity
+        by_type = {'sql_injection': 0, 'xss': 0, 'csrf': 0}
+        by_severity = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'info': 0}
+        for v in vulnerabilities:
+            vtype = v.vuln_type.value.lower()
+            if 'sql' in vtype:
+                by_type['sql_injection'] += 1
+            elif 'xss' in vtype or 'script' in vtype:
+                by_type['xss'] += 1
+            elif 'csrf' in vtype:
+                by_type['csrf'] += 1
+            sev = v.severity.value.lower()
+            if sev in by_severity:
+                by_severity[sev] += 1
+
+        # Print scan summary
+        self.logger.info("\n" + "="*70)
+        self.logger.info("SCAN COMPLETE")
+        self.logger.info("="*70)
+        self.logger.info(f"URL: {url}")
+        self.logger.info(f"Found: {raw_count} total, {unique_count} unique (after deduplication)")
+        self.logger.info(f"Scan Duration: {scan_time:.1f}s")
+        self.logger.info("\nBy Type:")
+        self.logger.info(f"  SQL Injection: {by_type['sql_injection']}")
+        self.logger.info(f"  XSS: {by_type['xss']}")
+        self.logger.info(f"  CSRF: {by_type['csrf']}")
+        self.logger.info("\nBy Severity:")
+        self.logger.info(f"  Critical: {by_severity['critical']}")
+        self.logger.info(f"  High: {by_severity['high']}")
+        self.logger.info(f"  Medium: {by_severity['medium']}")
+        self.logger.info(f"  Low: {by_severity['low']}")
+        self.logger.info("="*70)
+
+        if not vulnerabilities:
+            pm.set_phase(scan_id, ScanPhase.COMPLETE)
+            return {
+                'success': True,
+                'url': url,
+                'vulnerabilities_found': 0,
+                'scan_time': round(scan_time, 2),
+                'message': 'No vulnerabilities found'
+            }
+
+        # Phase: Analyzing
+        pm.set_phase(scan_id, ScanPhase.ANALYZING, analysis_step="Running ML predictions")
+
+        pred_start = time.time()
+        predictions = self.predict_risks(vulnerabilities)
+        pred_time = time.time() - pred_start
+
+        pm.update(scan_id, analysis_step="Prioritizing vulnerabilities")
+
+        prior_start = time.time()
+        risk_scores = self.prioritize_vulnerabilities(predictions)
+        prior_time = time.time() - prior_start
+
+        risk_scores.sort(key=lambda x: x.final_risk_score, reverse=True)
+
+        vuln_lookup = {}
+        xai_lookup = {}
+        for pred in predictions:
+            vuln_lookup[pred['vulnerability_id']] = pred['original_vuln']
+            xai_lookup[pred['vulnerability_id']] = {
+                'shap_explanation': pred.get('shap_explanation'),
+                'lime_explanation': pred.get('lime_explanation')
+            }
+
+        total_time = time.time() - start_time
+
+        pm.set_phase(scan_id, ScanPhase.COMPLETE)
+
+        return {
+            'success': True,
+            'url': url,
+            'vulnerabilities_found': len(vulnerabilities),
+            'scan_time': round(scan_time, 2),
+            'prediction_time': round(pred_time, 2),
+            'prioritization_time': round(prior_time, 2),
+            'total_time': round(total_time, 2),
+            'risk_scores': [
+                self._format_risk_score(rs, vuln_lookup.get(rs.vulnerability_id), xai_lookup.get(rs.vulnerability_id))
+                for rs in risk_scores
+            ],
+            'statistics': self._calculate_statistics(risk_scores),
+            'timestamp': datetime.now().isoformat()
+        }
+
+    def scan_site_and_analyze_with_progress(
+        self,
+        base_url: str,
+        scan_types: List[str] = ['sql', 'xss', 'csrf'],
+        cookies: Dict[str, str] = None,
+        max_urls: int = 20,
+        scan_id: str = None
+    ) -> Dict:
+        """
+        Crawl and scan with progress tracking
+
+        Args:
+            base_url: Base URL to crawl
+            scan_types: Types of scans
+            cookies: Session cookies
+            max_urls: Max URLs to scan
+            scan_id: Progress tracking ID
+
+        Returns:
+            Complete results dictionary
+        """
+        from app.services.progress import get_progress_manager, ScanPhase
+        from app.core.scanner.crawler import URLCrawler
+
+        pm = get_progress_manager()
+        start_time = time.time()
+
+        # Phase: Crawling
+        pm.set_phase(scan_id, ScanPhase.CRAWLING)
+
+        config = {**SCANNER_CONFIG}
+        if cookies:
+            config['cookies'] = cookies
+
+        # Crawl to discover URLs
+        crawler_config = {'timeout': config.get('timeout', 10), 'cookies': cookies}
+        crawler = URLCrawler(crawler_config)
+        discovered_urls = crawler.crawl(base_url)
+
+        # Limit URLs
+        urls_to_scan = discovered_urls[:max_urls]
+        pm.update(scan_id,
+                  urls_discovered=len(discovered_urls),
+                  urls_to_scan=len(urls_to_scan),
+                  total_urls=len(urls_to_scan))
+
+        self.logger.info(f"Discovered {len(discovered_urls)} URLs, scanning {len(urls_to_scan)}")
+
+        # Phase: Scanning
+        pm.set_phase(scan_id, ScanPhase.SCANNING)
+
+        scanner = GlitchForgeScanner(config)
+        all_vulns = []
+
+        for idx, url in enumerate(urls_to_scan):
+            pm.update(scan_id,
+                      current_url=url,
+                      current_url_index=idx + 1)
+
+            for scan_type in scan_types:
+                pm.update(scan_id, current_scanner=scan_type.upper())
+                try:
+                    scanner.scan_all(url=url, scan_types=[scan_type])
+                    all_vulns.extend(scanner.all_results)
+                except Exception as e:
+                    self.logger.warning(f"Scan error on {url}: {e}")
+
+            pm.update(scan_id, vulns_found=len(all_vulns))
+
+        vulnerabilities = all_vulns
+        scan_time = time.time() - start_time
+        raw_count = len(vulnerabilities)
+
+        # Deduplicate: keep highest confidence per (url_path, parameter, vuln_type)
+        seen = {}
+        for v in vulnerabilities:
+            parsed = urlparse(v.url)
+            key = (parsed.path, v.parameter, v.vuln_type.value)
+            if key not in seen or v.confidence > seen[key].confidence:
+                seen[key] = v
+        vulnerabilities = list(seen.values())
+        unique_count = len(vulnerabilities)
+
+        self.logger.info(f"Found {raw_count} vulnerabilities, {unique_count} unique after deduplication")
+
+        # Count by type and severity
+        by_type = {'sql_injection': 0, 'xss': 0, 'csrf': 0}
+        by_severity = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'info': 0}
+        for v in vulnerabilities:
+            vtype = v.vuln_type.value.lower()
+            if 'sql' in vtype:
+                by_type['sql_injection'] += 1
+            elif 'xss' in vtype or 'script' in vtype:
+                by_type['xss'] += 1
+            elif 'csrf' in vtype:
+                by_type['csrf'] += 1
+            sev = v.severity.value.lower()
+            if sev in by_severity:
+                by_severity[sev] += 1
+
+        # Print final scan summary
+        self.logger.info("\n" + "="*70)
+        self.logger.info("SITE SCAN COMPLETE")
+        self.logger.info("="*70)
+        self.logger.info(f"Base URL: {base_url}")
+        self.logger.info(f"URLs Scanned: {len(urls_to_scan)}")
+        self.logger.info(f"Found: {raw_count} total, {unique_count} unique (after deduplication)")
+        self.logger.info(f"Scan Duration: {scan_time:.1f}s")
+        self.logger.info("\nBy Type:")
+        self.logger.info(f"  SQL Injection: {by_type['sql_injection']}")
+        self.logger.info(f"  XSS: {by_type['xss']}")
+        self.logger.info(f"  CSRF: {by_type['csrf']}")
+        self.logger.info("\nBy Severity:")
+        self.logger.info(f"  Critical: {by_severity['critical']}")
+        self.logger.info(f"  High: {by_severity['high']}")
+        self.logger.info(f"  Medium: {by_severity['medium']}")
+        self.logger.info(f"  Low: {by_severity['low']}")
+        self.logger.info("="*70)
+
+        if not vulnerabilities:
+            pm.set_phase(scan_id, ScanPhase.COMPLETE)
+            return {
+                'success': True,
+                'url': base_url,
+                'mode': 'site_scan',
+                'urls_scanned': len(urls_to_scan),
+                'vulnerabilities_found': 0,
+                'scan_time': round(scan_time, 2),
+                'message': 'No vulnerabilities found'
+            }
+
+        # Phase: Analyzing
+        pm.set_phase(scan_id, ScanPhase.ANALYZING, analysis_step="Running ML predictions")
+
+        pred_start = time.time()
+        predictions = self.predict_risks(vulnerabilities)
+        pred_time = time.time() - pred_start
+
+        pm.update(scan_id, analysis_step="Prioritizing vulnerabilities")
+
+        prior_start = time.time()
+        risk_scores = self.prioritize_vulnerabilities(predictions)
+        prior_time = time.time() - prior_start
+
+        risk_scores.sort(key=lambda x: x.final_risk_score, reverse=True)
+
+        vuln_lookup = {}
+        xai_lookup = {}
+        for pred in predictions:
+            vuln_lookup[pred['vulnerability_id']] = pred['original_vuln']
+            xai_lookup[pred['vulnerability_id']] = {
+                'shap_explanation': pred.get('shap_explanation'),
+                'lime_explanation': pred.get('lime_explanation')
+            }
+
+        total_time = time.time() - start_time
+
+        pm.set_phase(scan_id, ScanPhase.COMPLETE)
+
+        return {
+            'success': True,
+            'url': base_url,
+            'mode': 'site_scan',
+            'urls_scanned': len(urls_to_scan),
+            'vulnerabilities_found': len(vulnerabilities),
+            'scan_time': round(scan_time, 2),
+            'prediction_time': round(pred_time, 2),
+            'prioritization_time': round(prior_time, 2),
+            'total_time': round(total_time, 2),
+            'risk_scores': [
+                self._format_risk_score(rs, vuln_lookup.get(rs.vulnerability_id), xai_lookup.get(rs.vulnerability_id))
+                for rs in risk_scores
+            ],
+            'statistics': self._calculate_statistics(risk_scores),
+            'timestamp': datetime.now().isoformat()
         }
 
 

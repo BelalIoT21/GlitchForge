@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
-import { runScan } from './api/client'
-import type { ScanResult, RiskScore } from './api/types'
+import { useState, useRef, useCallback } from 'react'
+import { runScanStream } from './api/client'
+import type { ScanResult, ScanProgress as ScanProgressType } from './api/types'
 import TopBar from './components/layout/TopBar'
 import Footer from './components/layout/Footer'
 import ScanInput from './components/scan/ScanInput'
@@ -21,75 +21,72 @@ export default function App() {
   const [result, setResult] = useState<ScanResult | null>(null)
   const [scanUrl, setScanUrl] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [progress, setProgress] = useState<ScanProgressType | null>(null)
 
-  // Deduplicate risk_scores: keep highest risk_score per (url, parameter)
-  const dedupedResult = useMemo(() => {
-    if (!result) return null
-    if (!result.risk_scores || result.risk_scores.length === 0) {
-      return result
-    }
-    const seen = new Map<string, RiskScore>()
-    for (const v of result.risk_scores) {
-      // Use vulnerability_id as fallback if where is missing
-      const key = v.where
-        ? `${v.where.url || ''}|${v.where.parameter || ''}`
-        : v.vulnerability_id || String(Math.random())
-      const existing = seen.get(key)
-      if (!existing || v.risk_score > existing.risk_score) {
-        seen.set(key, v)
-      }
-    }
-    const deduped = Array.from(seen.values())
-    // Recompute stats from deduped list
-    const riskLevels: Record<string, number> = {}
-    for (const v of deduped) {
-      riskLevels[v.risk_level] = (riskLevels[v.risk_level] || 0) + 1
-    }
-    return {
-      ...result,
-      vulnerabilities_found: deduped.length,
-      risk_scores: deduped,
-      statistics: result.statistics ? {
-        ...result.statistics,
-        total_vulnerabilities: deduped.length,
-        risk_levels: riskLevels,
-      } : undefined,
-    }
-  }, [result])
+  // Store abort function for cancellation
+  const abortRef = useRef<(() => void) | null>(null)
 
-  const handleScan = async (url: string, scanTypes: string[]) => {
+  const handleScan = useCallback((url: string, scanTypes: string[], cookies?: Record<string, string>, crawl?: boolean) => {
     setLoading(true)
     setError(null)
     setResult(null)
+    setProgress(null)
     setScanUrl(url)
     setPage('results')
 
-    try {
-      const data = await runScan({ url, scan_types: scanTypes })
-      setResult(data as ScanResult)
-    } catch (err) {
-      const msg = err instanceof Error
-        ? err.message
-        : 'Network error \u2014 is the backend running on port 5000?'
-      setError(msg)
-    } finally {
-      setLoading(false)
+    // Cancel any existing scan
+    if (abortRef.current) {
+      abortRef.current()
     }
-  }
 
-  const handleGoHome = () => {
+    // Start streaming scan
+    abortRef.current = runScanStream(
+      { url, scan_types: scanTypes, cookies, crawl, max_urls: crawl ? 50 : undefined },
+      {
+        onProgress: (prog) => {
+          setProgress(prog)
+        },
+        onResult: (data) => {
+          // First show the completed progress bar
+          setProgress(prev => prev ? { ...prev, phase: 'complete' } : null)
+
+          // Wait for the progress bar to complete its animation before showing results
+          setTimeout(() => {
+            setResult(data)
+            setLoading(false)
+            setProgress(null)
+            abortRef.current = null
+          }, 800)
+        },
+        onError: (msg) => {
+          setError(msg || 'Scan failed')
+          setLoading(false)
+          setProgress(null)
+          abortRef.current = null
+        }
+      }
+    )
+  }, [])
+
+  const handleGoHome = useCallback(() => {
+    // Cancel any running scan
+    if (abortRef.current) {
+      abortRef.current()
+      abortRef.current = null
+    }
     setPage('home')
     setLoading(false)
     setError(null)
     setResult(null)
+    setProgress(null)
     setScanUrl('')
-  }
+  }, [])
 
   const handleDownloadReport = async () => {
-    if (!dedupedResult) return
+    if (!result) return
     setGenerating(true)
     try {
-      await generateReport(dedupedResult)
+      await generateReport(result)
     } catch (err) {
       console.error('Report generation failed:', err)
     } finally {
@@ -101,7 +98,7 @@ export default function App() {
     <div className="gf-app">
       <TopBar
         onDownloadReport={handleDownloadReport}
-        canDownload={!!dedupedResult && !loading}
+        canDownload={!!result && !loading}
         generating={generating}
         onGoHome={handleGoHome}
       />
@@ -118,7 +115,7 @@ export default function App() {
 
         {page === 'results' && (
           <>
-            {loading && <ScanProgress url={scanUrl} />}
+            {loading && <ScanProgress url={scanUrl} progress={progress} />}
 
             {error && (
               <div className="gf-error-box">
@@ -130,17 +127,17 @@ export default function App() {
               </div>
             )}
 
-            {dedupedResult && !loading && (
+            {result && !loading && (
               <>
-                {!dedupedResult.success ? (
+                {!result.success ? (
                   <div className="gf-error-box">
                     <span className="gf-error-icon">!</span>
                     <div>
                       <div className="gf-error-title">Scan Failed</div>
-                      <div className="gf-error-msg">{dedupedResult.message || 'An unexpected error occurred.'}</div>
+                      <div className="gf-error-msg">{result.message || 'An unexpected error occurred.'}</div>
                     </div>
                   </div>
-                ) : dedupedResult.vulnerabilities_found === 0 ? (
+                ) : result.vulnerabilities_found === 0 ? (
                   <div className="gf-empty">
                     <span className="gf-empty-icon">&#10003;</span>
                     <div className="gf-empty-title">No vulnerabilities found</div>
@@ -148,13 +145,13 @@ export default function App() {
                       The target URL did not trigger any known vulnerability signatures.
                     </div>
                     <div className="gf-empty-meta">
-                      Scan time: {dedupedResult.total_time ?? dedupedResult.scan_time}s
+                      Scan time: {result.total_time ?? result.scan_time}s
                     </div>
                   </div>
                 ) : (
                   <>
-                    <DashboardOverview result={dedupedResult} />
-                    <VulnList vulns={dedupedResult.risk_scores} />
+                    <DashboardOverview result={result} />
+                    <VulnList vulns={result.risk_scores} />
                   </>
                 )}
               </>

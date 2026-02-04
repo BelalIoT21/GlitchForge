@@ -156,6 +156,79 @@
   cursor: not-allowed;
 }
 
+/* ===== Advanced Auth Options ===== */
+.gf-scan-advanced {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.gf-scan-hint {
+  font-size: 0.82rem;
+  color: var(--accent);
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.gf-scan-auth-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gf-scan-auth-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.gf-scan-auth-field label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.gf-scan-auth-input,
+.gf-scan-auth-select {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color var(--transition);
+  outline: none;
+}
+
+.gf-scan-auth-input:focus,
+.gf-scan-auth-select:focus {
+  border-color: var(--accent);
+}
+
+.gf-scan-auth-input::placeholder {
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.gf-scan-auth-select {
+  cursor: pointer;
+}
+
+.gf-scan-auth-input:disabled,
+.gf-scan-auth-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ===== Scan Progress ===== */
 .gf-progress {
   display: flex;
@@ -205,6 +278,124 @@
   font-family: 'JetBrains Mono', monospace;
   color: var(--accent);
   font-size: 0.85rem;
+  max-width: 100%;
+  word-break: break-all;
+  text-align: center;
+}
+
+/* Progress bar */
+.gf-progress-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+  margin-top: 8px;
+}
+
+.gf-progress-bar-container {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gf-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #818cf8);
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+}
+
+.gf-progress-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Progress stats */
+.gf-progress-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 16px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 600px;
+  width: 100%;
+}
+
+.gf-progress-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.gf-progress-stat-full {
+  min-width: 100%;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.gf-progress-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.gf-progress-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.gf-progress-stat-full .gf-progress-stat-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.gf-progress-stat-vulns .gf-progress-stat-value {
+  color: var(--critical);
+}
+
+/* Current activity (scanning URL or running analysis) */
+.gf-progress-current-activity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  max-width: 100%;
+}
+
+.gf-progress-activity-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gf-progress-activity-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--accent);
+  word-break: break-all;
 }
 
 .gf-progress-dots::after {
@@ -261,5 +452,13 @@
   .gf-mode-option {
     padding: 5px 12px;
     font-size: 0.72rem;
+  }
+
+  .gf-scan-auth-row {
+    flex-direction: column;
+  }
+
+  .gf-scan-auth-field {
+    min-width: 100%;
   }
 }

@@ -99,9 +99,8 @@ FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False") == "True"
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
-# Logging
+# Logging (console only, no file logging)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOG_FILE = BASE_DIR / "glitchforge.log"
 
 # CORS origins for React frontend
 CORS_ORIGINS = ["http://localhost:3000", "http://localhost:3001"]
@@ -161,7 +160,6 @@ class Config:
     SECRET_KEY = SECRET_KEY
 
     LOG_LEVEL = LOG_LEVEL
-    LOG_FILE = LOG_FILE
 
     @classmethod
     def create_directories(cls):

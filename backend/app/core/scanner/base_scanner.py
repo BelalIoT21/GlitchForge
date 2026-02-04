@@ -71,6 +71,7 @@ class BaseScanner(ABC):
         self.logger = get_logger(self.__class__.__name__)
         self.timeout = config.get('timeout', 15)
         self.user_agent = config.get('user_agent', 'GlitchForge/2.0')
+        self.cookies = config.get('cookies', {})  # Session cookies for authenticated scanning
         self.vulnerabilities = []
         self.request_count = 0
 
@@ -82,7 +83,7 @@ class BaseScanner(ABC):
         data: Dict = None,
         allow_redirects: bool = True
     ) -> Optional[requests.Response]:
-        """Make HTTP request with error handling"""
+        """Make HTTP request with error handling and cookie support"""
         try:
             headers = {'User-Agent': self.user_agent}
             self.request_count += 1
@@ -92,6 +93,7 @@ class BaseScanner(ABC):
                     url,
                     params=params,
                     headers=headers,
+                    cookies=self.cookies,
                     timeout=self.timeout,
                     allow_redirects=allow_redirects,
                     verify=False
@@ -101,6 +103,7 @@ class BaseScanner(ABC):
                     url,
                     data=data,
                     headers=headers,
+                    cookies=self.cookies,
                     timeout=self.timeout,
                     allow_redirects=allow_redirects,
                     verify=False
@@ -213,6 +216,18 @@ class BaseScanner(ABC):
 
         self.logger.info(f"Starting scan: {url}")
 
+        # Parse existing URL parameters to preserve them (important for forms like DVWA)
+        parsed = urlparse(url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        existing_params = {}
+        if parsed.query:
+            for key, values in parse_qs(parsed.query).items():
+                existing_params[key] = values[0] if values else ''
+
+        # Store for use by subclass detection methods (e.g., SQL baseline comparison)
+        self.existing_params = existing_params
+        self.base_url = base_url
+
         # Discover or use provided parameters
         if parameters is None:
             parameters = self.discover_parameters(url)
@@ -221,15 +236,49 @@ class BaseScanner(ABC):
             self.logger.info("No parameters found - nothing to test")
             return []
 
+        # Find submit buttons to include in requests (required for forms like DVWA)
+        submit_params = {}
+        for param in parameters:
+            if param.lower() == 'submit':
+                submit_params[param] = 'Submit'  # Default submit button value
+
+        # Also check for submit buttons in the page if not in URL
+        if not submit_params and not existing_params:
+            try:
+                response = self.make_request(url)
+                if response:
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    for inp in soup.find_all('input', {'type': 'submit'}):
+                        name = inp.get('name')
+                        value = inp.get('value', 'Submit')
+                        if name:
+                            submit_params[name] = value
+                            self.logger.debug(f"Found submit button: {name}={value}")
+            except Exception as e:
+                self.logger.debug(f"Error finding submit buttons: {e}")
+
+        # Merge submit params into existing params
+        existing_params.update(submit_params)
+        self.existing_params = existing_params
+
         # Get payloads
         payloads = self.get_payloads()
 
         # Test each parameter
         for param in parameters:
+            # Skip submit buttons - they're not injectable but are included in requests
+            if param.lower() == 'submit':
+                continue
+
             # Try each payload until we find a vulnerability
             for payload in payloads:
-                # Make request with payload
-                response = self.make_request(url, method='GET', params={param: payload})
+                # Build params: start with existing URL params + submit buttons, then inject payload
+                test_params = existing_params.copy()
+                test_params[param] = payload
+
+                # Make request with all params (preserves Submit, etc.)
+                response = self.make_request(base_url, method='GET', params=test_params)
 
                 if not response:
                     continue

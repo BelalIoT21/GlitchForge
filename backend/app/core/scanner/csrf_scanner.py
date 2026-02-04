@@ -72,10 +72,15 @@ class CSRFScanner(BaseScanner):
                 return []
 
             for form in forms:
-                # Skip GET forms (not vulnerable to CSRF)
                 method = (form.get('method') or 'get').upper()
+
+                # For GET forms, only flag if they do state-changing operations
+                # (like password change - common DVWA test case)
                 if method == 'GET':
-                    continue
+                    if not self._is_state_changing_form(form):
+                        self.logger.debug("Skipping non-state-changing GET form")
+                        continue
+                    self.logger.info("Found state-changing GET form (itself a vulnerability)")
 
                 # Check if this is a login form (different protection)
                 if self._is_login_form(form):
@@ -172,3 +177,48 @@ class CSRFScanner(BaseScanner):
         )
 
         return has_password and has_username
+
+    def _is_state_changing_form(self, form) -> bool:
+        """
+        Check if a GET form performs state-changing operations
+
+        GET forms shouldn't change state, but some vulnerable apps do this.
+        Examples: password change, delete account, update settings
+        """
+        # Check form action for state-changing keywords
+        action = (form.get('action') or '').lower()
+        state_changing_actions = [
+            'change', 'update', 'delete', 'remove', 'modify',
+            'password', 'passwd', 'pwd', 'settings', 'profile',
+            'csrf'  # DVWA's CSRF test page
+        ]
+        if any(keyword in action for keyword in state_changing_actions):
+            return True
+
+        # Check for password fields (new password for change)
+        inputs = form.find_all('input')
+        password_fields = [inp for inp in inputs if inp.get('type') == 'password']
+
+        # If there's a password field but it's not a login form, it's likely a password change
+        if password_fields:
+            # Login forms have username + password
+            # Password change forms often have just password fields (new_password, confirm_password)
+            has_username = any(
+                inp.get('type') in ['email', 'text'] and
+                (inp.get('name') or '').lower() in ['email', 'username', 'user', 'login']
+                for inp in inputs
+            )
+            if not has_username:
+                return True
+
+        # Check input names for state-changing operations
+        state_changing_params = [
+            'new_password', 'password_new', 'password_conf', 'confirm',
+            'change', 'update', 'delete'
+        ]
+        for inp in inputs:
+            name = (inp.get('name') or '').lower()
+            if any(param in name for param in state_changing_params):
+                return True
+
+        return False

@@ -18,11 +18,22 @@ For development/testing with Flask dev server:
 """
 
 import sys
+import logging
 from pathlib import Path
 import multiprocessing
 
 # Ensure backend directory is on path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# Configure root logging to show all scanner output
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s: %(message)s',
+    stream=sys.stdout
+)
+# Force immediate output
+for handler in logging.root.handlers:
+    handler.flush()
 
 from waitress import serve
 from app import create_app
@@ -83,8 +94,8 @@ def main():
             # Connection settings
             connection_limit=1000,
             cleanup_interval=30,
-            # Logging
-            _quiet=False
+            # Suppress Waitress "Serving on" message (we print our own)
+            _quiet=True
         )
     except KeyboardInterrupt:
         print("\n\nShutting down GlitchForge...")

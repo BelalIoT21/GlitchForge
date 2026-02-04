@@ -17,6 +17,9 @@ export interface EngineStatus {
 export interface ScanRequest {
   url: string
   scan_types: string[]
+  cookies?: Record<string, string>
+  crawl?: boolean
+  max_urls?: number
 }
 
 export interface VulnWhere {
@@ -110,4 +113,20 @@ export interface QuickScanResult {
   url: string
   vulnerabilities_found: number
   vulnerabilities: QuickScanVuln[]
+}
+
+export interface ScanProgress {
+  scan_id: string
+  phase: 'initializing' | 'crawling' | 'scanning' | 'analyzing' | 'complete' | 'error'
+  url: string
+  urls_discovered: number
+  urls_to_scan: number
+  current_url: string
+  current_url_index: number
+  total_urls: number
+  vulns_found: number
+  current_scanner: string
+  analysis_step: string
+  elapsed_seconds: number
+  error_message: string
 }

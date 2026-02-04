@@ -13,6 +13,7 @@ from datetime import datetime
 from .sql_scanner import SQLScanner
 from .xss_scanner import XSSScanner
 from .csrf_scanner import CSRFScanner
+from .crawler import URLCrawler
 from app.utils.logger import get_logger
 from app.config import OUTPUTS_DIR
 
@@ -82,7 +83,10 @@ class GlitchForgeScanner:
         """
         self.scan_summary['target_url'] = url
         self.scan_summary['start_time'] = datetime.now()
-        
+        self.all_results = []  # Reset results for new scan
+        self.scan_summary['by_type'] = {'sql_injection': 0, 'xss': 0, 'csrf': 0}
+        self.scan_summary['by_severity'] = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'info': 0}
+
         self.logger.info("="*70)
         self.logger.info(f"Starting GlitchForge Scan on: {url}")
         self.logger.info("="*70)
@@ -138,14 +142,8 @@ class GlitchForgeScanner:
         self.scan_summary['duration'] = (
             self.scan_summary['end_time'] - self.scan_summary['start_time']
         ).total_seconds()
-        self.scan_summary['total_vulnerabilities'] = len(self.all_results)
-        
-        # Count by severity
-        for result in self.all_results:
-            severity = result.severity.value.lower()
-            self.scan_summary['by_severity'][severity] += 1
-        
-        # Deduplicate: keep highest-confidence result per (url, parameter)
+
+        # Deduplicate FIRST: keep highest-confidence result per (url, parameter)
         seen = {}
         for result in self.all_results:
             key = (result.url, result.parameter)
@@ -154,8 +152,13 @@ class GlitchForgeScanner:
         self.all_results = list(seen.values())
         self.scan_summary['total_vulnerabilities'] = len(self.all_results)
 
-        # Print summary
-        self._print_summary()
+        # Count by severity AFTER deduplication
+        self.scan_summary['by_severity'] = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'info': 0}
+        for result in self.all_results:
+            severity = result.severity.value.lower()
+            self.scan_summary['by_severity'][severity] += 1
+
+        # Don't print summary here - let the engine print a final summary at the end
 
         return [result.to_dict() for result in self.all_results]
     
@@ -184,7 +187,157 @@ class GlitchForgeScanner:
         self.logger.info(f"  - Info: {summary['by_severity']['info']}")
         
         self.logger.info("="*70)
-    
+
+    def scan_site(
+        self,
+        base_url: str,
+        scan_types: List[str] = None,
+        max_urls: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Crawl a site and scan all discovered URLs
+
+        Args:
+            base_url: Base URL to start crawling from
+            scan_types: List of scan types to run (default: all)
+            max_urls: Maximum number of URLs to scan
+
+        Returns:
+            List of all vulnerability results from all URLs
+        """
+        self.scan_summary['target_url'] = base_url
+        self.scan_summary['start_time'] = datetime.now()
+        self.all_results = []
+
+        self.logger.info("="*70)
+        self.logger.info(f"Starting Site Scan: {base_url}")
+        self.logger.info("="*70)
+
+        # Initialize crawler with same config (including cookies)
+        crawler_config = {
+            **self.config,
+            'max_urls': max_urls,
+            'max_depth': 2
+        }
+        crawler = URLCrawler(crawler_config)
+
+        # Discover URLs
+        self.logger.info("\n[CRAWL] Discovering URLs...")
+        discovered_urls = crawler.crawl(base_url)
+
+        if not discovered_urls:
+            self.logger.warning("No URLs discovered to scan")
+            return []
+
+        self.logger.info(f"\n[CRAWL] Found {len(discovered_urls)} URLs to scan:")
+        for i, url in enumerate(discovered_urls[:10], 1):
+            self.logger.info(f"  {i}. {url}")
+        if len(discovered_urls) > 10:
+            self.logger.info(f"  ... and {len(discovered_urls) - 10} more")
+
+        # Default to all scan types
+        if scan_types is None:
+            scan_types = ['sql', 'xss', 'csrf']
+
+        # Scan each URL
+        total_vulns = 0
+        urls_scanned = 0
+
+        for i, url in enumerate(discovered_urls, 1):
+            self.logger.info(f"\n[{i}/{len(discovered_urls)}] Scanning: {url}")
+
+            try:
+                # Reinitialize scanners for each URL to clear state
+                self.sql_scanner = SQLScanner(self.config)
+                self.xss_scanner = XSSScanner(self.config)
+                self.csrf_scanner = CSRFScanner(self.config)
+
+                url_results = []
+
+                # Run SQL scan
+                if 'sql' in scan_types or 'sqli' in scan_types:
+                    try:
+                        sql_results = self.sql_scanner.scan(url)
+                        url_results.extend(sql_results)
+                        if sql_results:
+                            self.logger.info(f"    SQL: {len(sql_results)} found")
+                    except Exception as e:
+                        self.logger.debug(f"    SQL scan error: {e}")
+
+                # Run XSS scan
+                if 'xss' in scan_types:
+                    try:
+                        xss_results = self.xss_scanner.scan(url)
+                        url_results.extend(xss_results)
+                        if xss_results:
+                            self.logger.info(f"    XSS: {len(xss_results)} found")
+                    except Exception as e:
+                        self.logger.debug(f"    XSS scan error: {e}")
+
+                # Run CSRF scan
+                if 'csrf' in scan_types:
+                    try:
+                        csrf_results = self.csrf_scanner.scan(url)
+                        url_results.extend(csrf_results)
+                        if csrf_results:
+                            self.logger.info(f"    CSRF: {len(csrf_results)} found")
+                    except Exception as e:
+                        self.logger.debug(f"    CSRF scan error: {e}")
+
+                self.all_results.extend(url_results)
+                total_vulns += len(url_results)
+                urls_scanned += 1
+
+            except Exception as e:
+                self.logger.error(f"    Error scanning {url}: {e}")
+
+        # Calculate summary
+        self.scan_summary['end_time'] = datetime.now()
+        self.scan_summary['duration'] = (
+            self.scan_summary['end_time'] - self.scan_summary['start_time']
+        ).total_seconds()
+
+        # Deduplicate by (url, parameter, vuln_type) FIRST
+        seen = {}
+        for result in self.all_results:
+            key = (result.url, result.parameter, result.vuln_type.value)
+            if key not in seen or result.confidence > seen[key].confidence:
+                seen[key] = result
+        self.all_results = list(seen.values())
+        self.scan_summary['total_vulnerabilities'] = len(self.all_results)
+
+        # Count by type and severity AFTER deduplication
+        self.scan_summary['by_type'] = {'sql_injection': 0, 'xss': 0, 'csrf': 0}
+        self.scan_summary['by_severity'] = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'info': 0}
+
+        for result in self.all_results:
+            vuln_type = result.vuln_type.value.lower()
+            if 'sql' in vuln_type:
+                self.scan_summary['by_type']['sql_injection'] += 1
+            elif 'xss' in vuln_type or 'script' in vuln_type:
+                self.scan_summary['by_type']['xss'] += 1
+            elif 'csrf' in vuln_type or 'forgery' in vuln_type:
+                self.scan_summary['by_type']['csrf'] += 1
+
+            severity = result.severity.value.lower()
+            if severity in self.scan_summary['by_severity']:
+                self.scan_summary['by_severity'][severity] += 1
+
+        # Print summary
+        self.logger.info("\n" + "="*70)
+        self.logger.info("SITE SCAN SUMMARY")
+        self.logger.info("="*70)
+        self.logger.info(f"Base URL: {base_url}")
+        self.logger.info(f"URLs Scanned: {urls_scanned}")
+        self.logger.info(f"Duration: {self.scan_summary['duration']:.1f}s")
+        self.logger.info(f"Total Unique Vulnerabilities: {len(self.all_results)}")
+        self.logger.info(f"  - SQL Injection: {self.scan_summary['by_type']['sql_injection']}")
+        self.logger.info(f"  - XSS: {self.scan_summary['by_type']['xss']}")
+        self.logger.info(f"  - CSRF: {self.scan_summary['by_type']['csrf']}")
+        self.logger.info("="*70)
+
+        return [result.to_dict() for result in self.all_results]
+
     def export_results(
         self,
         output_file: str = None,

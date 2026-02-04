@@ -39,11 +39,12 @@ GlitchForge/
 │   │   ├── routes/                        # API Endpoints
 │   │   │   ├── __init__.py
 │   │   │   ├── health.py                  # GET /health, GET /api/status
-│   │   │   └── scan.py                    # POST /api/scan
+│   │   │   └── scan.py                    # POST /api/scan, POST /api/scan-stream (SSE)
 │   │   │
 │   │   ├── services/                      # Business Logic Layer
 │   │   │   ├── __init__.py
-│   │   │   └── engine.py                  # GlitchForgeEngine (orchestrates all stages)
+│   │   │   ├── engine.py                  # GlitchForgeEngine (orchestrates all stages)
+│   │   │   └── progress.py                # Real-time scan progress tracking (SSE)
 │   │   │
 │   │   ├── core/                          # Domain Logic
 │   │   │   │
@@ -52,8 +53,9 @@ GlitchForge/
 │   │   │   │   ├── base_scanner.py        # Abstract base scanner (parameter discovery, smart filtering)
 │   │   │   │   ├── sql_scanner.py         # SQL Injection (error-based detection, 4 payloads)
 │   │   │   │   ├── xss_scanner.py         # XSS (reflected detection, 4 payloads)
-│   │   │   │   ├── csrf_scanner.py        # CSRF (token validation)
-│   │   │   │   └── stage1_scanner.py      # Main scanner orchestrator
+│   │   │   │   ├── csrf_scanner.py        # CSRF (token validation + GET form detection)
+│   │   │   │   ├── crawler.py             # URL crawler for site-wide scanning
+│   │   │   │   └── stage1_scanner.py      # Main scanner orchestrator (single + site scanning)
 │   │   │   │
 │   │   │   ├── ml/                        # Stage 2: Machine Learning
 │   │   │   │   ├── __init__.py
@@ -78,7 +80,7 @@ GlitchForge/
 │   │   │
 │   │   └── utils/                         # Utilities
 │   │       ├── __init__.py
-│   │       ├── logger.py                  # Centralized logging
+│   │       ├── logger.py                  # Centralized logging with immediate flush
 │   │       ├── metrics.py                 # Performance metrics calculation
 │   │       └── helpers.py                 # Helper functions
 │   │
@@ -109,20 +111,20 @@ GlitchForge/
 └── frontend/                              # React Dashboard
     ├── src/
     │   ├── main.tsx                       # React entry point
-    │   ├── App.tsx                        # Root component (layout + centralized deduplication)
+    │   ├── App.tsx                        # Root component (layout + state management)
     │   │
     │   ├── api/
-    │   │   ├── client.ts                  # Axios API client (5s health timeout, no-cache)
-    │   │   └── types.ts                   # TypeScript interfaces
+    │   │   ├── client.ts                  # API client with SSE streaming support (no timeout)
+    │   │   └── types.ts                   # TypeScript interfaces (incl. ScanProgress)
     │   │
     │   ├── components/
     │   │   ├── layout/
-    │   │   │   ├── TopBar.tsx             # Logo, tagline, GitHub link, status, Export PDF
+    │   │   │   ├── TopBar.tsx             # Logo, tagline, offline indicator, Export PDF
     │   │   │   └── Footer.tsx             # Project info and credits
     │   │   │
     │   │   ├── scan/
-    │   │   │   ├── ScanInput.tsx          # URL input, scan type chips
-    │   │   │   └── ScanProgress.tsx       # Animated scanning indicator
+    │   │   │   ├── ScanInput.tsx          # URL input, scan type chips, crawl mode toggle
+    │   │   │   └── ScanProgress.tsx       # Real-time progress: phase, stats, animated progress bar with %, timer
     │   │   │
     │   │   ├── dashboard/
     │   │   │   ├── DashboardOverview.tsx  # Summary stat cards
@@ -291,6 +293,35 @@ python main.py
 
 Server runs on `http://localhost:5000`
 
+**Server Features:**
+- Waitress WSGI server (production-ready, works on Windows/Linux/macOS)
+- 8 concurrent request threads
+- Real-time console logging (scan progress, vulnerability detection)
+- 5-minute timeout for long-running full scans
+
+**Backend Logging Output:**
+```
+======================================================================
+SITE SCAN COMPLETE
+======================================================================
+Base URL: http://testphp.vulnweb.com
+URLs Scanned: 14
+Found: 234 total, 18 unique (after deduplication)
+Scan Duration: 144.2s
+
+By Type:
+  SQL Injection: 4
+  XSS: 5
+  CSRF: 9
+
+By Severity:
+  Critical: 0
+  High: 4
+  Medium: 5
+  Low: 9
+======================================================================
+```
+
 ### Frontend Setup
 
 ```bash
@@ -313,7 +344,9 @@ Content-Type: application/json
 
 {
   "url": "http://example.com",
-  "scan_types": ["sql", "xss", "csrf"]
+  "scan_types": ["sql", "xss", "csrf"],
+  "crawl": false,
+  "max_urls": 20
 }
 ```
 
@@ -340,7 +373,108 @@ Content-Type: application/json
 }
 ```
 
-**Note:** Results are deduplicated by URL + parameter, keeping the highest risk score for each unique combination.
+**Request Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `url` | string | required | Target URL to scan |
+| `scan_types` | array | `["sql", "xss", "csrf"]` | Types of vulnerabilities to scan for |
+| `cookies` | object | `null` | Session cookies for authenticated scanning |
+| `crawl` | boolean | `false` | Enable site crawling to discover and scan sub-URLs |
+| `max_urls` | integer | `20` | Maximum URLs to scan when crawling |
+
+**Note:** Results are automatically deduplicated by URL path + parameter + vulnerability type, keeping the highest confidence finding for each unique combination. The backend logs show both raw and deduplicated counts:
+```
+INFO: Found 234 vulnerabilities, 18 unique after deduplication
+```
+
+### Site Crawling Mode
+
+When `crawl: true` is enabled, GlitchForge automatically discovers and scans multiple pages:
+
+```http
+POST /api/scan
+Content-Type: application/json
+
+{
+  "url": "http://10.97.205.53/DVWA",
+  "scan_types": ["sql", "xss", "csrf"],
+  "crawl": true,
+  "max_urls": 20,
+  "cookies": {
+    "PHPSESSID": "your-session-id",
+    "security": "low"
+  }
+}
+```
+
+**Predefined Paths for Known Vulnerable Apps:**
+
+The crawler includes predefined paths for popular vulnerable training applications:
+
+| Application | Base URL Pattern | Auto-discovered Pages |
+|-------------|------------------|----------------------|
+| **DVWA** | `*/DVWA*` | SQL Injection, XSS (Reflected/Stored), CSRF, Command Injection, File Upload, etc. |
+| **testphp.vulnweb.com** | `testphp.vulnweb.com` | artists.php, listproducts.php, guestbook.php, search.php, etc. |
+| **bWAPP** | `*/bWAPP*` | SQL Injection (GET/POST), XSS, OS Command Injection, etc. |
+
+**Example DVWA Site Scan Result:**
+```bash
+# Single URL scan (old way)
+http://10.97.205.53/DVWA/vulnerabilities/sqli/?id=1
+# Result: 2-3 vulnerabilities
+
+# Site crawl (new way)
+http://10.97.205.53/DVWA
+# Result: 11+ vulnerabilities across SQL, XSS, CSRF pages automatically
+```
+
+### Real-Time Progress Streaming (SSE)
+
+For real-time progress updates during scanning, use the streaming endpoint:
+
+```http
+POST /api/scan-stream
+Content-Type: application/json
+
+{
+  "url": "http://example.com",
+  "scan_types": ["sql", "xss", "csrf"],
+  "crawl": true,
+  "max_urls": 50
+}
+```
+
+**Returns:** Server-Sent Events (SSE) stream with progress updates:
+
+```javascript
+// Progress event (sent multiple times during scan)
+{
+  "type": "progress",
+  "data": {
+    "phase": "scanning",        // initializing, crawling, scanning, analyzing, complete
+    "urls_discovered": 12,      // Pages found during crawl
+    "current_url_index": 5,     // Currently scanning URL #5
+    "total_urls": 12,           // Total URLs to scan
+    "vulns_found": 3,           // Vulnerabilities found so far
+    "current_scanner": "XSS",   // Active scanner (SQL, XSS, CSRF)
+    "elapsed_seconds": 45.2     // Time elapsed
+  }
+}
+
+// Final result event
+{
+  "type": "result",
+  "data": { /* Same as /api/scan response */ }
+}
+```
+
+**Features:**
+- No timeout - scans run until complete (server-side control)
+- Real-time progress for crawl discovery and scanning
+- Shows current scanner (SQL, XSS, CSRF) and current URL
+- Vulnerabilities count updates as they're found
+- Can be cancelled by closing the connection
 
 ---
 
@@ -367,56 +501,40 @@ CSRF:     Check HTML form → Look for token → No token = Vulnerable
 ```
 
 CSRF detection checks for:
-- ✅ CSRF token fields in forms
+- ✅ CSRF token fields in forms (POST forms)
+- ✅ State-changing GET forms (password change forms without CSRF protection)
 - ✅ SameSite cookie attributes
 - ✅ X-CSRF-Token headers
 
+**GET Form Detection:** The scanner now detects GET-based forms that perform state-changing operations (e.g., DVWA's password change form) which are vulnerable to CSRF even without POST submission.
+
 So "N/A" is **correct** - there's no payload to inject.
 
-### Why Only 1 Vulnerability Found?
+### Using Crawl Mode (Recommended)
 
-**The URL you scan matters!**
+With **Crawl Mode** enabled, GlitchForge automatically discovers and scans all pages on a site. Just enter the base URL and the crawler finds injectable pages for you:
 
-❌ **Wrong:** `http://testphp.vulnweb.com` (homepage - limited functionality)
 ```
-Result: 1 CSRF only
-Why: Homepage only has a search form, no injectable parameters
-```
-
-✅ **Correct:** `http://testphp.vulnweb.com/artists.php?artist=1` (specific page with parameters)
-```
-Result: 3 vulnerabilities (SQL + XSS + CSRF) in 7.4 seconds
-Why: This page has injectable parameters
+Base URL: http://testphp.vulnweb.com
+Crawl Mode: ON
+Result: 8+ vulnerabilities across artists.php, listproducts.php, guestbook.php, etc.
 ```
 
-### Scanning Best Practices
-
-**1. Test Specific Pages with Parameters**
-```bash
-✅ http://testphp.vulnweb.com/artists.php?artist=1
-✅ http://testphp.vulnweb.com/listproducts.php?cat=1
-✅ http://localhost/dvwa/vulnerabilities/sqli/?id=1
-❌ http://testphp.vulnweb.com (just the homepage)
+```
+Base URL: http://192.168.1.127/DVWA (with cookies)
+Crawl Mode: ON
+Result: 11+ vulnerabilities across SQL, XSS, CSRF pages
 ```
 
-**2. Understand What Each Scanner Tests**
+**Single URL Mode** is still available when you want to test a specific page.
 
-| Scanner | Tests | Parameters Needed |
-|---------|-------|-------------------|
-| **SQL** | Query parameters in GET/POST | ✅ Required (e.g., ?id=1) |
-| **XSS** | Input reflection in response | ✅ Required (e.g., ?search=test) |
-| **CSRF** | Form token protection | ❌ No parameters needed |
+### What Each Scanner Detects
 
-**3. Expected Results for Test Sites**
-
-| Site | Expected Result | Why |
-|------|----------------|-----|
-| testphp.vulnweb.com/artists.php | 3 vulns (SQL+XSS+CSRF) | Deliberately vulnerable test site |
-| DVWA (localhost) | Multiple vulns | Deliberately vulnerable training app |
-| WebGoat (localhost) | Multiple vulns | OWASP vulnerable training app |
-| Your local development | Varies | Depends on your security implementation |
-
-**See test URLs in the [🎯 Test URLs for Scanner Validation](#-test-urls-for-scanner-validation) section.**
+| Scanner | Detection Method | Result |
+|---------|-----------------|--------|
+| **SQL Injection** | Error-based detection with 4 payloads | Finds injectable parameters |
+| **XSS** | Reflected payload detection | Finds script injection points |
+| **CSRF** | Form token validation | Finds unprotected forms |
 
 ### Risk Score Breakdown
 
@@ -456,27 +574,126 @@ python -m app.services.engine --url http://localhost/dvwa/vulnerabilities/sqli/?
 #### testphp.vulnweb.com - Acunetix's Intentionally Vulnerable Test Site
 
 ```bash
-# SQL Injection + XSS + CSRF (recommended for testing)
+# Recommended: Use Crawl Mode
+http://testphp.vulnweb.com
+# Crawl Mode: ON, scans 14 pages automatically
+# Expected: 18 unique vulnerabilities (4 SQL, 5 XSS, 9 CSRF) in ~144 seconds
+# Note: Raw findings may be higher (e.g., 234) before deduplication
+
+# Or test specific pages directly
 http://testphp.vulnweb.com/artists.php?artist=1
-# Expected: 3 vulnerabilities (SQL, XSS, CSRF) in ~7 seconds
-
-# SQL Injection (product listing)
-http://testphp.vulnweb.com/listproducts.php?cat=1
-# Expected: 2-3 vulnerabilities in ~6 seconds
-
-# CSRF only (guestbook form)
-http://testphp.vulnweb.com/guestbook.php
-# Expected: 1 vulnerability (CSRF) in ~15 seconds
+# Expected: 3 vulnerabilities (SQL, XSS, CSRF)
 ```
+
+#### DVWA (Damn Vulnerable Web Application) VM Setup
+
+If running DVWA on a Kali Linux VM, follow these steps to access it from your network:
+
+**1. Ensure the VM has an IP address:**
+```bash
+# Check network interfaces
+ip addr show eth0
+
+# If no IP assigned, connect via NetworkManager
+sudo nmcli device connect eth0
+
+# Alternative: restart networking
+sudo systemctl restart networking
+```
+
+**2. Start Apache and MySQL:**
+```bash
+sudo systemctl start apache2
+sudo systemctl start mysql
+```
+
+**3. Verify DVWA is running locally:**
+```bash
+curl http://127.0.0.1/DVWA/
+```
+
+**4. Access from your network:**
+- Get your VM's IP: `ip addr show eth0` (look for `inet` address)
+- Open in browser: `http://<vm-ip>/DVWA/`
+- Example: `http://10.97.205.53/DVWA/`
+
+**5. DVWA Login Credentials:**
+- Username: `admin`
+- Password: `password`
+
+**VM Network Tips:**
+- Set VM network adapter to **Bridged** mode for direct network access
+- If using NAT, configure port forwarding for port 80
+- Check firewall: `sudo ufw status` and allow if needed: `sudo ufw allow 80/tcp`
+
+#### Authenticated DVWA Scanning
+
+DVWA requires authentication to access vulnerability pages. To scan DVWA with GlitchForge:
+
+**1. Get your session cookies from browser:**
+- Login to DVWA in your browser (`admin` / `password`)
+- Open Developer Tools (F12) → Application → Cookies
+- Copy the `PHPSESSID` and `security` cookie values
+
+**2. Scan single URL via API with cookies:**
+```bash
+curl -X POST http://localhost:5000/api/scan \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "http://10.97.205.53/DVWA/vulnerabilities/sqli/?id=1",
+    "scan_types": ["sql", "xss", "csrf"],
+    "cookies": {
+      "PHPSESSID": "your-session-id-here",
+      "security": "low"
+    }
+  }'
+```
+
+**3. Site crawl (recommended - scans all DVWA vulnerability pages):**
+```bash
+curl -X POST http://localhost:5000/api/scan \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "http://10.97.205.53/DVWA",
+    "scan_types": ["sql", "xss", "csrf"],
+    "crawl": true,
+    "max_urls": 20,
+    "cookies": {
+      "PHPSESSID": "your-session-id-here",
+      "security": "low"
+    }
+  }'
+# Expected: 11+ vulnerabilities across SQL, XSS, CSRF pages
+```
+
+**4. Or use the frontend:**
+The React dashboard supports cookie-based scanning and crawl mode. Toggle "Crawl Site" mode and enter your cookies in the advanced options when scanning DVWA.
+
+**DVWA Security Levels:**
+- `low` - No protection, easiest to exploit
+- `medium` - Basic filtering
+- `high` - More robust filtering
+- `impossible` - Secure implementation (no vulnerabilities)
+
+Set security level via: `http://<vm-ip>/DVWA/security.php`
 
 #### Quick Testing Checklist
 
+**Recommended: Site Crawl Mode (crawl: true)**
+
+| Base URL | Expected Result | Purpose |
+|----------|-----------------|---------|
+| `http://testphp.vulnweb.com` | 18 unique vulnerabilities (4 SQL, 5 XSS, 9 CSRF) | Auto-discovers and scans 14 pages |
+| `http://<vm-ip>/DVWA` + cookies | 11+ unique vulnerabilities | Full DVWA site scan (SQL, XSS, CSRF pages) |
+
+**Note:** The backend logs both raw and deduplicated counts. For example, crawling testphp.vulnweb.com may find 234 raw vulnerabilities which deduplicate to 18 unique findings.
+
+**Single URL Mode (for specific page testing):**
+
 | URL | Expected Result | Purpose |
 |-----|-----------------|---------|
-| `http://testphp.vulnweb.com/artists.php?artist=1` | 3 vulnerabilities | Verify scanner finds SQL + XSS + CSRF |
-| `http://testphp.vulnweb.com/listproducts.php?cat=1` | 2-3 vulnerabilities | Verify SQL detection |
-| `http://testphp.vulnweb.com/guestbook.php` | 1 vulnerability | Verify CSRF detection |
-| `http://localhost/dvwa/` | Multiple vulnerabilities | Test against local DVWA instance |
+| `http://testphp.vulnweb.com/artists.php?artist=1` | 3 vulnerabilities | Verify SQL + XSS + CSRF on specific page |
+| `http://<vm-ip>/DVWA/vulnerabilities/sqli/?id=1` | 2-3 vulnerabilities | Test specific DVWA vulnerability page |
 
 ### Performance Metrics
 
@@ -513,8 +730,9 @@ The React frontend provides a professional dark-themed dashboard for interacting
 
 | Feature | Description |
 |---------|-------------|
-| **TopBar** | Logo, centered tagline (responsive), GitHub link, offline status indicator (5s polling), Export PDF button |
-| **Scan Input** | URL input with toggleable scan type chips (SQL, XSS, CSRF) |
+| **TopBar** | Logo, centered tagline (responsive), offline status indicator (5s polling), Export PDF button |
+| **Scan Input** | URL input with toggleable scan type chips (SQL, XSS, CSRF), crawl mode toggle ("Single URL" / "Crawl Site") |
+| **Real-Time Progress** | Live SSE-powered progress with smooth animations: phase indicator, progress bar with percentage display, continuously running timer, pages discovered, scanning progress (X/Y), vulnerabilities found. Activity display shows current URL during scanning and current step during ML analysis. Bar completes smoothly before showing results. |
 | **Dashboard Overview** | Summary stat cards (Total, Critical, High, Medium, Low, ML Agreement, Scan Time) |
 | **Severity Breakdown** | Stacked horizontal bar showing severity distribution with legend |
 | **Sortable Vulnerability List** | Sort by risk score (high/low) or alphabetically, auto-deduplicated |
