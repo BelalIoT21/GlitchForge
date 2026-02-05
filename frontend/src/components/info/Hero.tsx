@@ -28,11 +28,6 @@ export default function Hero() {
             <span className="gf-hero-stat-value">3</span>
             <span className="gf-hero-stat-label">Vuln Types</span>
           </div>
-          <div className="gf-hero-stat-sep" />
-          <div className="gf-hero-stat">
-            <span className="gf-hero-stat-value">~7s</span>
-            <span className="gf-hero-stat-label">Avg Scan</span>
-          </div>
         </div>
       </div>
     </div>

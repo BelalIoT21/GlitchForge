@@ -128,9 +128,9 @@
 }
 
 .gf-xai-badge.shap {
-  background: rgba(129, 140, 248, 0.12);
+  background: rgba(249, 115, 22, 0.12);
   color: var(--accent);
-  border: 1px solid rgba(129, 140, 248, 0.25);
+  border: 1px solid rgba(249, 115, 22, 0.25);
 }
 
 .gf-xai-badge.lime {
@@ -261,8 +261,8 @@
 }
 
 .gf-xai-bar-negative {
-  background: rgba(129, 140, 248, 0.5);
-  border: 1px solid rgba(129, 140, 248, 0.35);
+  background: rgba(249, 115, 22, 0.5);
+  border: 1px solid rgba(249, 115, 22, 0.35);
 }
 
 /* Value */

@@ -708,6 +708,79 @@ Set security level via: `http://<vm-ip>/DVWA/security.php`
 
 ---
 
+## 🔒 Security Features
+
+GlitchForge implements comprehensive security measures following OWASP best practices:
+
+### Rate Limiting
+
+IP-based rate limiting on all public endpoints to prevent abuse:
+
+| Endpoint | Rate Limit | Window |
+|----------|------------|--------|
+| `/api/scan` | 10 requests | 1 minute |
+| `/api/scan-stream` | 5 requests | 1 minute |
+| `/api/quick-scan` | 20 requests | 1 minute |
+| `/health`, `/api/status` | 60 requests | 1 minute |
+
+Rate limit headers included in responses:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Requests remaining in window
+- `Retry-After`: Seconds until rate limit resets (on 429)
+
+### Input Validation & Sanitization
+
+Schema-based validation on all inputs:
+- URL validation with scheme whitelist (http/https only)
+- Maximum URL length: 2048 characters
+- Cookie name/value length limits
+- Scan types whitelist: `["sql", "xss", "csrf"]`
+- Rejection of unexpected request fields
+- Dangerous pattern detection (script tags, event handlers)
+
+### Authentication (Optional)
+
+JWT-based authentication with OAuth 2.0 support:
+- Bearer token authentication via `Authorization` header
+- Token expiry and signature validation
+- User context available for audit logging
+
+### Role-Based Access Control (RBAC)
+
+Hierarchical permission system:
+- **Guest**: View system status only
+- **User**: View scan results
+- **Analyst**: Create and view scans
+- **Admin**: Full system access including user management
+
+### Security Headers
+
+Comprehensive security headers on all responses:
+- `Content-Security-Policy`: Restrictive CSP
+- `X-Frame-Options: DENY`: Prevent clickjacking
+- `X-Content-Type-Options: nosniff`: Prevent MIME sniffing
+- `Strict-Transport-Security`: HSTS in production
+- `Referrer-Policy`: Control referrer information
+- `Permissions-Policy`: Restrict browser features
+
+### HTTPS Enforcement
+
+Automatic HTTP to HTTPS redirect in production environment.
+
+### Security Module Structure
+
+```
+backend/app/security/
+├── __init__.py           # Module exports
+├── rate_limiter.py       # IP/user-based rate limiting
+├── validation.py         # Schema validation, sanitization
+├── auth.py              # JWT authentication, OAuth support
+├── rbac.py              # Role-based access control
+└── headers.py           # Security headers middleware
+```
+
+---
+
 ## 🛠️ Technology Stack
 
 | Category | Technologies |
@@ -716,8 +789,10 @@ Set security level via: `http://<vm-ip>/DVWA/security.php`
 | **ML/AI** | scikit-learn, TensorFlow/Keras, XGBoost |
 | **XAI** | SHAP, LIME |
 | **Data** | pandas, numpy, NIST NVD API |
-| **Security** | Requests, BeautifulSoup4, OWASP methodologies |
+| **Security** | Rate limiting, JWT auth, RBAC, CSP headers, input validation |
+| **Scanning** | Requests, BeautifulSoup4, OWASP methodologies |
 | **Frontend** | React 18, TypeScript, Vite, jsPDF |
+| **Design** | Orange gradient theme, skeleton loading states, proper easing |
 | **Deployment** | Waitress (production), Flask dev server (development) |
 
 ---

@@ -1,20 +1,17 @@
 const CAPABILITIES = [
   {
-    icon: '\uD83D\uDEE1\uFE0F',
     title: 'SQL Injection',
     tag: 'CWE-89',
     desc: 'Error-based detection using targeted payloads to identify injection points in query parameters.',
     severity: 'Critical',
   },
   {
-    icon: '\u26A0\uFE0F',
     title: 'Cross-Site Scripting',
     tag: 'CWE-79',
     desc: 'Reflected XSS detection with unique markers to verify script execution in responses.',
     severity: 'High',
   },
   {
-    icon: '\uD83D\uDD12',
     title: 'CSRF',
     tag: 'CWE-352',
     desc: 'Token validation checks on HTML forms, SameSite cookies, and anti-CSRF headers.',
@@ -24,32 +21,26 @@ const CAPABILITIES = [
 
 const FEATURES = [
   {
-    icon: '\uD83C\uDFAF',
     title: 'Risk Scoring',
-    desc: 'CVSS-weighted scoring with ML predictions, exploitability, and age factors combined into a 0\u2013100 risk score.',
+    desc: 'CVSS-weighted scoring with ML predictions, exploitability, and age factors combined into a 0-100 risk score.',
   },
   {
-    icon: '\uD83D\uDD0D',
     title: 'SHAP Explanations',
     desc: 'TreeExplainer shows which vulnerability features drove the risk prediction up or down.',
   },
   {
-    icon: '\uD83D\uDCA1',
     title: 'LIME Explanations',
     desc: 'Local interpretable explanations verify SHAP results with an independent model-agnostic approach.',
   },
   {
-    icon: '\uD83D\uDCC4',
     title: 'PDF Reports',
     desc: 'Export professional vulnerability reports with executive summary, severity breakdown, and remediation steps.',
   },
   {
-    icon: '\u2699\uFE0F',
     title: 'Smart Filtering',
     desc: 'Auto-skips tracking parameters (utm_*, analytics) and limits parameter count to prevent slow scans.',
   },
   {
-    icon: '\uD83E\uDD1D',
     title: 'Model Agreement',
     desc: 'Random Forest and Neural Network predictions are compared to increase confidence in risk assessments.',
   },
@@ -73,7 +64,6 @@ export default function Capabilities() {
           {CAPABILITIES.map(cap => (
             <div key={cap.tag} className="gf-cap-vuln-card">
               <div className="gf-cap-vuln-top">
-                <span className="gf-cap-vuln-icon">{cap.icon}</span>
                 <span
                   className="gf-cap-vuln-severity"
                   style={{ color: SEVERITY_COLORS[cap.severity], borderColor: SEVERITY_COLORS[cap.severity] }}
@@ -97,7 +87,6 @@ export default function Capabilities() {
         <div className="gf-cap-features">
           {FEATURES.map(feat => (
             <div key={feat.title} className="gf-cap-feat-card">
-              <span className="gf-cap-feat-icon">{feat.icon}</span>
               <div>
                 <div className="gf-cap-feat-title">{feat.title}</div>
                 <div className="gf-cap-feat-desc">{feat.desc}</div>

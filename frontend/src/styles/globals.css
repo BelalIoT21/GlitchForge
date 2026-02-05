@@ -22,31 +22,37 @@
   --text-secondary: #8b8fa3;
   --text-muted:     #5c6078;
 
-  /* Accent */
-  --accent:       #818cf8;
-  --accent-hover: #6366f1;
-  --accent-glow:  rgba(129, 140, 248, 0.15);
+  /* Accent - Orange Theme */
+  --accent:       #f97316;
+  --accent-hover: #ea580c;
+  --accent-glow:  rgba(249, 115, 22, 0.15);
+
+  /* Secondary accent for gradients */
+  --accent-light: #fb923c;
+  --accent-dark:  #c2410c;
 
   /* Severity */
   --critical: #ef4444;
   --high:     #f97316;
   --medium:   #eab308;
   --low:      #22c55e;
-  --info:     #6366f1;
+  --info:     #3b82f6;
 
   --critical-bg: rgba(239, 68, 68, 0.10);
   --high-bg:     rgba(249, 115, 22, 0.10);
   --medium-bg:   rgba(234, 179, 8, 0.10);
   --low-bg:      rgba(34, 197, 94, 0.10);
-  --info-bg:     rgba(99, 102, 241, 0.10);
+  --info-bg:     rgba(59, 130, 246, 0.10);
 
   /* Spacing */
   --radius-sm: 6px;
   --radius:    10px;
   --radius-lg: 14px;
 
-  /* Transitions */
-  --transition: 0.2s ease;
+  /* Transitions - proper easing curves */
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ===== Typography ===== */
@@ -188,6 +194,84 @@ a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-light);
+}
+
+/* ===== Skeleton Loading ===== */
+.gf-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--border) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: gf-skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.gf-skeleton-circular {
+  border-radius: 50%;
+}
+
+.gf-skeleton-text {
+  border-radius: 4px;
+}
+
+@keyframes gf-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.gf-skeleton-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.gf-skeleton-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.gf-skeleton-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gf-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== Button Loading State ===== */
+.gf-btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.gf-btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: gf-btn-spin 0.6s linear infinite;
+}
+
+@keyframes gf-btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ===== Responsive ===== */

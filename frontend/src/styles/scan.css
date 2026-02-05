@@ -55,7 +55,7 @@
 
 .gf-scan-submit:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
 }
 
 .gf-scan-submit:active:not(:disabled) {
@@ -170,7 +170,7 @@
   color: var(--accent);
   margin-bottom: 12px;
   padding: 8px 12px;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(249, 115, 22, 0.1);
   border-radius: var(--radius-sm);
 }
 
@@ -303,9 +303,9 @@
 
 .gf-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #818cf8);
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
   border-radius: 4px;
-  transition: width 0.5s ease-out;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .gf-progress-pct {

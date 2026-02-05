@@ -11,6 +11,7 @@ import Hero from './components/info/Hero'
 import HowItWorks from './components/info/HowItWorks'
 import Capabilities from './components/info/Capabilities'
 import { generateReport } from './components/report/ReportGenerator'
+import { formatTime } from './utils/formatTime'
 
 type Page = 'home' | 'results'
 
@@ -145,7 +146,7 @@ export default function App() {
                       The target URL did not trigger any known vulnerability signatures.
                     </div>
                     <div className="gf-empty-meta">
-                      Scan time: {result.total_time ?? result.scan_time}s
+                      Scan time: {formatTime(result.total_time ?? result.scan_time)}
                     </div>
                   </div>
                 ) : (

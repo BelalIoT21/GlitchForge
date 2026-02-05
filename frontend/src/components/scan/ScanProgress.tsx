@@ -23,8 +23,10 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
   const startTimeRef = useRef<number>(Date.now())
   const [elapsedTime, setElapsedTime] = useState(0)
 
-  // Smooth animation for analyzing phase
+  // Smooth animated progress for scanning and analyzing phases
+  const [scanProgress, setScanProgress] = useState(5)
   const [analyzeProgress, setAnalyzeProgress] = useState(85)
+  const scanStartRef = useRef<number | null>(null)
   const analyzeStartRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -34,6 +36,39 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  // Animate scanning phase smoothly (prevents jumping to 85% on single URL)
+  useEffect(() => {
+    if (phase === 'scanning') {
+      if (!scanStartRef.current) {
+        scanStartRef.current = Date.now()
+        setScanProgress(15)
+      }
+
+      // For multi-URL: target based on URL progress
+      // For single URL: animate gradually to 75%
+      const urlTarget = progress?.total_urls && progress.total_urls > 1
+        ? 15 + (progress.current_url_index / progress.total_urls) * 70
+        : 75
+
+      const interval = setInterval(() => {
+        setScanProgress(prev => {
+          if (prev >= urlTarget) return urlTarget
+          // Gradual increase with easing
+          const remaining = urlTarget - prev
+          const increment = Math.max(0.5, remaining * 0.08)
+          return Math.min(urlTarget, prev + increment)
+        })
+      }, 100)
+
+      return () => clearInterval(interval)
+    } else if (phase === 'analyzing' || phase === 'complete') {
+      setScanProgress(85)
+    } else {
+      scanStartRef.current = null
+      setScanProgress(5)
+    }
+  }, [phase, progress?.current_url_index, progress?.total_urls])
 
   // Animate the analyzing phase smoothly
   useEffect(() => {
@@ -68,15 +103,14 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
 
   // Calculate progress percentage
   let progressPct = 0
-  if (phase === 'crawling') {
+  if (phase === 'initializing') {
+    progressPct = 5
+  } else if (phase === 'crawling') {
     // Crawling phase: 5-15%
     progressPct = 5 + Math.min(progress?.urls_discovered || 0, 10)
   } else if (phase === 'scanning') {
-    // Scanning phase: 15-85%
-    const urlProgress = progress?.total_urls
-      ? (progress.current_url_index / progress.total_urls) * 70
-      : 0
-    progressPct = 15 + urlProgress
+    // Use animated scan progress
+    progressPct = scanProgress
   } else if (phase === 'analyzing') {
     // Use the animated progress value
     progressPct = analyzeProgress

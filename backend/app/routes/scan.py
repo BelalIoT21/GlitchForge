@@ -1,5 +1,10 @@
 """
 Scan endpoints with real-time progress streaming
+
+Security features:
+- Rate limiting on all endpoints
+- Input validation and sanitization
+- Optional authentication support
 """
 
 import uuid
@@ -11,37 +16,56 @@ from app.services.engine import get_engine, _get_vuln_metadata
 from app.services.progress import get_progress_manager, ScanPhase
 from app.core.scanner.base_scanner import VulnerabilityType
 
+# Import security decorators
+from app.security.rate_limiter import rate_limit
+from app.security.validation import (
+    ScanRequestSchema,
+    validate_request,
+    sanitize_url,
+    sanitize_cookies
+)
+from app.security.auth import optional_auth, get_current_user
+
 scan_bp = Blueprint('scan', __name__, url_prefix='/api')
 
 
 @scan_bp.route('/scan', methods=['POST'])
+@rate_limit(limit_type='ip')  # 10 requests per minute (defined in rate_limiter.py)
+@validate_request(ScanRequestSchema)  # Validate input against schema
+@optional_auth  # Extract user if authenticated (not required)
 def scan():
     """
-    Main scanning endpoint
+    Main scanning endpoint with full ML analysis
 
     POST /api/scan
     Body: {
-        "url": "http://example.com",
-        "scan_types": ["sql", "xss", "csrf"],
-        "cookies": {"PHPSESSID": "abc123", "security": "low"},  // Optional for authenticated scanning
-        "crawl": true,  // Optional: crawl site to discover and scan all URLs
-        "max_urls": 20  // Optional: max URLs to scan when crawling
+        "url": "http://example.com",           // Required: URL to scan
+        "scan_types": ["sql", "xss", "csrf"],  // Optional: types to scan for
+        "cookies": {"PHPSESSID": "abc123"},    // Optional: session cookies
+        "crawl": true,                         // Optional: crawl site for URLs
+        "max_urls": 20                         // Optional: max URLs when crawling
     }
+
+    Rate limit: 10 requests per minute per IP
     """
     try:
         data = request.get_json()
 
-        if not data or 'url' not in data:
-            return jsonify({
-                'success': False,
-                'error': 'URL is required'
-            }), 400
-
-        url = data['url']
+        # Sanitize inputs (validation already done by decorator)
+        url = sanitize_url(data['url'])
         scan_types = data.get('scan_types', ['sql', 'xss', 'csrf'])
-        cookies = data.get('cookies', None)  # Optional session cookies for DVWA etc.
-        crawl = data.get('crawl', False)  # Enable site crawling
-        max_urls = data.get('max_urls', 20)  # Max URLs to scan when crawling
+        cookies = data.get('cookies', None)
+        crawl = data.get('crawl', False)
+        max_urls = data.get('max_urls', 20)
+
+        # Sanitize cookies if provided
+        if cookies:
+            cookies = sanitize_cookies(cookies)
+
+        # Log scan request (useful for audit trail)
+        user = get_current_user()
+        user_info = user.get('email') if user else 'anonymous'
+        print(f"[SCAN] User: {user_info} | URL: {url} | Types: {scan_types}")
 
         engine = get_engine()
 
@@ -64,11 +88,15 @@ def scan():
         traceback.print_exc()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An error occurred during scanning',
+            'message': str(e)
         }), 500
 
 
 @scan_bp.route('/scan-stream', methods=['POST'])
+@rate_limit(limit_type='ip')  # 5 requests per minute (streaming scans are expensive)
+@validate_request(ScanRequestSchema)
+@optional_auth
 def scan_stream():
     """
     Streaming scan endpoint with real-time progress via SSE
@@ -77,23 +105,28 @@ def scan_stream():
     Body: same as /api/scan
 
     Returns: Server-Sent Events stream with progress updates
+
+    Rate limit: 5 requests per minute per IP
     """
     data = request.get_json()
 
-    if not data or 'url' not in data:
-        return jsonify({
-            'success': False,
-            'error': 'URL is required'
-        }), 400
-
-    url = data['url']
+    # Sanitize inputs
+    url = sanitize_url(data['url'])
     scan_types = data.get('scan_types', ['sql', 'xss', 'csrf'])
     cookies = data.get('cookies', None)
     crawl = data.get('crawl', False)
     max_urls = data.get('max_urls', 20)
 
+    if cookies:
+        cookies = sanitize_cookies(cookies)
+
     # Create unique scan ID
     scan_id = str(uuid.uuid4())[:8]
+
+    # Log scan request
+    user = get_current_user()
+    user_info = user.get('email') if user else 'anonymous'
+    print(f"[SCAN-STREAM] User: {user_info} | URL: {url} | ID: {scan_id}")
 
     # Create progress tracker
     progress_manager = get_progress_manager()
@@ -172,20 +205,30 @@ def scan_stream():
 
 
 @scan_bp.route('/quick-scan', methods=['POST'])
+@rate_limit(limit_type='ip')  # 20 requests per minute
+@validate_request(ScanRequestSchema)
+@optional_auth
 def quick_scan():
-    """Quick scan without ML analysis"""
+    """
+    Quick scan without ML analysis
+
+    POST /api/quick-scan
+    Body: same as /api/scan (max_urls ignored)
+
+    Returns basic vulnerability info without risk scoring
+
+    Rate limit: 20 requests per minute per IP
+    """
     try:
         data = request.get_json()
 
-        if not data or 'url' not in data:
-            return jsonify({
-                'success': False,
-                'error': 'URL is required'
-            }), 400
-
-        url = data['url']
+        # Sanitize inputs
+        url = sanitize_url(data['url'])
         scan_types = data.get('scan_types', ['sql', 'xss', 'csrf'])
-        cookies = data.get('cookies', None)  # Optional session cookies
+        cookies = data.get('cookies', None)
+
+        if cookies:
+            cookies = sanitize_cookies(cookies)
 
         engine = get_engine()
         vulnerabilities = engine.quick_scan(url, scan_types, cookies)
@@ -223,5 +266,6 @@ def quick_scan():
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An error occurred during scanning',
+            'message': str(e)
         }), 500

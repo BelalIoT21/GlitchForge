@@ -1,5 +1,6 @@
 import type { ScanResult } from '../../api/types'
 import SeverityBreakdown from './SeverityBreakdown'
+import { formatTime } from '../../utils/formatTime'
 
 interface DashboardOverviewProps {
   result: ScanResult
@@ -65,7 +66,7 @@ export default function DashboardOverview({ result }: DashboardOverviewProps) {
         )}
 
         <div className="gf-stat">
-          <span className="gf-stat-value">{totalTime}s</span>
+          <span className="gf-stat-value">{formatTime(totalTime)}</span>
           <span className="gf-stat-label">Scan Time</span>
         </div>
       </div>
