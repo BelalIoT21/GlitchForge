@@ -36,16 +36,6 @@ GlitchForge/
 │   │   ├── __init__.py                    # Flask app factory
 │   │   ├── config.py                      # Centralized configuration
 │   │   │
-│   │   ├── routes/                        # API Endpoints
-│   │   │   ├── __init__.py
-│   │   │   ├── health.py                  # GET /health, GET /api/status
-│   │   │   └── scan.py                    # POST /api/scan, POST /api/scan-stream (SSE)
-│   │   │
-│   │   ├── services/                      # Business Logic Layer
-│   │   │   ├── __init__.py
-│   │   │   ├── engine.py                  # GlitchForgeEngine (orchestrates all stages)
-│   │   │   └── progress.py                # Real-time scan progress tracking (SSE)
-│   │   │
 │   │   ├── core/                          # Domain Logic
 │   │   │   │
 │   │   │   ├── scanner/                   # Stage 1: Vulnerability Detection
@@ -78,16 +68,29 @@ GlitchForge/
 │   │   │       ├── data_models.py         # Risk score data classes
 │   │   │       └── stage4_prioritization.py
 │   │   │
+│   │   ├── routes/                        # API Endpoints
+│   │   │   ├── __init__.py
+│   │   │   ├── health.py                  # GET /health, GET /api/status
+│   │   │   └── scan.py                    # POST /api/scan, POST /api/scan-stream (SSE)
+│   │   │
+│   │   ├── security/
+│   │   │   ├── __init__.py           # Module exports
+│   │   │   ├── rate_limiter.py       # IP/user-based rate limiting
+│   │   │   ├── validation.py         # Schema validation, sanitization
+│   │   │   ├── auth.py              # JWT authentication, OAuth support
+│   │   │   ├── rbac.py              # Role-based access control
+│   │   │   └── headers.py           # Security headers middleware
+│   │   │
+│   │   ├── services/                      # Business Logic Layer
+│   │   │   ├── __init__.py
+│   │   │   ├── engine.py                  # GlitchForgeEngine (orchestrates all stages)
+│   │   │   └── progress.py                # Real-time scan progress tracking (SSE)
+│   │   │
 │   │   └── utils/                         # Utilities
 │   │       ├── __init__.py
 │   │       ├── logger.py                  # Centralized logging with immediate flush
 │   │       ├── metrics.py                 # Performance metrics calculation
 │   │       └── helpers.py                 # Helper functions
-│   │
-│   ├── models/                            # Trained ML Models
-│   │   ├── random_forest.pkl              # Trained RF model
-│   │   ├── neural_network.h5              # Trained NN model (Keras)
-│   │   └── scaler.pkl                     # Feature scaler
 │   │
 │   ├── data/                              # Training Data
 │   │   ├── raw/                           # Raw CVE data from NVD
@@ -97,13 +100,18 @@ GlitchForge/
 │   │       ├── y_train.csv
 │   │       └── y_test.csv
 │   │
+│   ├── logs/                              # Application Logs
+│   │   └── glitchforge.log
+│   │
+│   ├── models/                            # Trained ML Models
+│   │   ├── random_forest.pkl              # Trained RF model
+│   │   ├── neural_network.h5              # Trained NN model (Keras)
+│   │   └── scaler.pkl                     # Feature scaler
+│   │
 │   ├── outputs/                           # Generated Outputs
 │   │   ├── plots/                         # Visualizations (SHAP/LIME)
 │   │   ├── tables/                        # Performance metrics
 │   │   └── explanations/                  # Text explanations
-│   │
-│   ├── logs/                              # Application Logs
-│   │   └── glitchforge.log
 │   │
 │   ├── requirements.txt                   # Python dependencies
 │   └── .env                               # Environment variables (NVD_API_KEY)
@@ -766,18 +774,6 @@ Comprehensive security headers on all responses:
 ### HTTPS Enforcement
 
 Automatic HTTP to HTTPS redirect in production environment.
-
-### Security Module Structure
-
-```
-backend/app/security/
-├── __init__.py           # Module exports
-├── rate_limiter.py       # IP/user-based rate limiting
-├── validation.py         # Schema validation, sanitization
-├── auth.py              # JWT authentication, OAuth support
-├── rbac.py              # Role-based access control
-└── headers.py           # Security headers middleware
-```
 
 ---
 
