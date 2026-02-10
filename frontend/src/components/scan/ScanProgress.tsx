@@ -10,6 +10,7 @@ const phaseLabels: Record<string, string> = {
   initializing: 'Initializing...',
   crawling: 'Discovering pages...',
   scanning: 'Scanning for vulnerabilities...',
+  pentesting: 'Validating exploits...',
   analyzing: 'Running ML analysis...',
   complete: 'Complete',
   error: 'Error'
@@ -62,7 +63,7 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
       }, 100)
 
       return () => clearInterval(interval)
-    } else if (phase === 'analyzing' || phase === 'complete') {
+    } else if (phase === 'pentesting' || phase === 'analyzing' || phase === 'complete') {
       setScanProgress(85)
     } else {
       scanStartRef.current = null
@@ -111,6 +112,12 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
   } else if (phase === 'scanning') {
     // Use animated scan progress
     progressPct = scanProgress
+  } else if (phase === 'pentesting') {
+    // Pentesting occupies 75%-85% of the progress bar
+    const pentestPct = progress?.pentest_total
+      ? (progress.pentest_current / progress.pentest_total)
+      : 0
+    progressPct = 75 + pentestPct * 10
   } else if (phase === 'analyzing') {
     // Use the animated progress value
     progressPct = analyzeProgress
@@ -186,6 +193,22 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
             </div>
           )}
 
+          {/* Pentesting progress */}
+          {phase === 'pentesting' && progress.pentest_total > 0 && (
+            <div className="gf-progress-stat">
+              <span className="gf-progress-stat-label">Validating</span>
+              <span className="gf-progress-stat-value">
+                {progress.pentest_current} / {progress.pentest_total}
+              </span>
+            </div>
+          )}
+          {phase === 'pentesting' && progress.pentest_confirmed > 0 && (
+            <div className="gf-progress-stat gf-progress-stat-vulns">
+              <span className="gf-progress-stat-label">Confirmed</span>
+              <span className="gf-progress-stat-value">{progress.pentest_confirmed}</span>
+            </div>
+          )}
+
           {/* Vulnerabilities found */}
           {progress.vulns_found > 0 && (
             <div className="gf-progress-stat gf-progress-stat-vulns">
@@ -201,6 +224,12 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
         <div className="gf-progress-current-activity">
           <span className="gf-progress-activity-label">Scanning:</span>
           <span className="gf-progress-activity-value">{truncateUrl(progress.current_url, 70)}</span>
+        </div>
+      )}
+      {phase === 'pentesting' && progress?.pentest_technique && (
+        <div className="gf-progress-current-activity">
+          <span className="gf-progress-activity-label">Testing:</span>
+          <span className="gf-progress-activity-value">{progress.pentest_technique}</span>
         </div>
       )}
       {phase === 'analyzing' && progress?.analysis_step && (

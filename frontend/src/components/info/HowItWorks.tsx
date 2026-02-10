@@ -1,8 +1,8 @@
 const STEPS = [
   {
     num: '1',
-    title: 'Vulnerability Scanning',
-    desc: 'Active scanning tests for SQL Injection, Cross-Site Scripting (XSS), and CSRF vulnerabilities using targeted payloads against the target URL.',
+    title: 'Vulnerability Scanning & Pentesting',
+    desc: 'Scans for SQLi, XSS, and CSRF vulnerabilities then pentests each finding with controlled exploits to eliminate false positives.',
   },
   {
     num: '2',
@@ -27,7 +27,7 @@ export default function HowItWorks() {
       <div className="gf-hiw-header">
         <div className="gf-hiw-title">How GlitchForge Works</div>
         <div className="gf-hiw-subtitle">
-          ML-powered vulnerability detection with explainable AI
+          ML-powered vulnerability detection, pentesting & explainable AI
         </div>
       </div>
 

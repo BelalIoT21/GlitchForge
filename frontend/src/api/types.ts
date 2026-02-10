@@ -57,6 +57,39 @@ export interface XAIExplanation {
   model_fit?: number
 }
 
+export interface HttpExchange {
+  method: string
+  url: string
+  headers: Record<string, string>
+  body: string | null
+  status_code: number
+  response_headers: Record<string, string>
+  response_body: string
+  response_time_ms: number
+}
+
+export interface PentestEvidence {
+  technique: string
+  http_exchanges: HttpExchange[]
+  poc_command: string
+  extracted_data: string[]
+  impact_description: string
+  reproduction_steps: string[]
+}
+
+export interface PentestResult {
+  vulnerability_url: string
+  vulnerability_parameter: string
+  vulnerability_type: string
+  verification_status: 'confirmed' | 'likely' | 'unverified' | 'false_positive' | 'not_tested'
+  confidence: number
+  evidence: PentestEvidence | null
+  attempts: number
+  duration_seconds: number
+  timestamp: string
+  error_message: string
+}
+
 export interface RiskScore {
   vulnerability_id: string
   risk_score: number
@@ -75,6 +108,8 @@ export interface RiskScore {
   how_to_fix?: VulnFix
   shap_explanation?: XAIExplanation
   lime_explanation?: XAIExplanation
+  pentest?: PentestResult
+  verified?: string
 }
 
 export interface ScanStatistics {
@@ -93,9 +128,12 @@ export interface ScanResult {
   url: string
   vulnerabilities_found: number
   scan_time: number
+  pentest_time?: number
   prediction_time?: number
   prioritization_time?: number
   total_time?: number
+  scanned_count?: number
+  filtered_count?: number
   risk_scores: RiskScore[]
   statistics?: ScanStatistics
   timestamp?: string
@@ -117,7 +155,7 @@ export interface QuickScanResult {
 
 export interface ScanProgress {
   scan_id: string
-  phase: 'initializing' | 'crawling' | 'scanning' | 'analyzing' | 'complete' | 'error'
+  phase: 'initializing' | 'crawling' | 'scanning' | 'pentesting' | 'analyzing' | 'complete' | 'error'
   url: string
   urls_discovered: number
   urls_to_scan: number
@@ -126,6 +164,10 @@ export interface ScanProgress {
   total_urls: number
   vulns_found: number
   current_scanner: string
+  pentest_current: number
+  pentest_total: number
+  pentest_confirmed: number
+  pentest_technique: string
   analysis_step: string
   elapsed_seconds: number
   error_message: string

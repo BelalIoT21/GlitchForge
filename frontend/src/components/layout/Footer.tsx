@@ -3,7 +3,7 @@ export default function Footer() {
     <footer className="gf-footer">
       <div className="gf-footer-left">
         <span className="gf-footer-brand">GlitchForge</span>
-        <span>&mdash; ML-Powered Vulnerability Scanner</span>
+        <span>&mdash; ML-Powered Vulnerability Scanner & Pentester</span>
       </div>
       <div className="gf-footer-right">
         Built with SHAP &amp; LIME Explainability

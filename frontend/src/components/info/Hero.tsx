@@ -7,11 +7,11 @@ export default function Hero() {
         <h1 className="gf-hero-title">
           Intelligent Vulnerability
           <br />
-          <span className="gf-hero-accent">Detection & Analysis</span>
+          <span className="gf-hero-accent">Detection, Pentesting & Analysis</span>
         </h1>
         <p className="gf-hero-desc">
-          Scan web applications for vulnerabilities using machine learning risk prediction,
-          explainable AI insights, and automated remediation guidance.
+          Scan and pentest web applications for vulnerabilities using automated exploit validation,
+          machine learning risk prediction, explainable AI insights, and remediation guidance.
         </p>
         <div className="gf-hero-stats">
           <div className="gf-hero-stat">

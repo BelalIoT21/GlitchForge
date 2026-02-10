@@ -48,6 +48,9 @@ if _backend_dir not in sys.path:
 from app.core.scanner.stage1_scanner import GlitchForgeScanner
 from app.core.scanner.base_scanner import VulnerabilityResult, VulnerabilityType
 
+# Stage 1.5: Pentest validation imports
+from app.core.pentester import PentestOrchestrator, PentestResult, VerificationStatus
+
 # Stage 2: ML imports
 from app.core.ml.feature_engineering import FeatureEngineer
 
@@ -677,9 +680,48 @@ University of East London - BSc Computer Science
                 'message': 'No vulnerabilities found'
             }
 
-        # Stage 2: Predict
+        # Stage 1.5: Pentest Validation
+        pentest_start = time.time()
+        pentest_config = {**SCANNER_CONFIG}
+        if cookies:
+            pentest_config['cookies'] = cookies
+        orchestrator = PentestOrchestrator(pentest_config)
+        pentest_results = orchestrator.validate_all(vulnerabilities)
+        pentest_time = time.time() - pentest_start
+
+        # Build pentest lookup and filter out false positives/unverified
+        pentest_lookup = {}
+        for pr in pentest_results:
+            key = (pr.vulnerability_url, pr.vulnerability_parameter, pr.vulnerability_type)
+            pentest_lookup[key] = pr
+
+        # Filter: only keep confirmed/likely (Shannon's "No Exploit, No Report")
+        scanned_count = len(vulnerabilities)
+        verified_vulns = []
+        for vuln in vulnerabilities:
+            key = (vuln.url, vuln.parameter, vuln.vuln_type.value)
+            pr = pentest_lookup.get(key)
+            if pr and pr.verification_status in (VerificationStatus.CONFIRMED, VerificationStatus.LIKELY):
+                verified_vulns.append(vuln)
+
+        filtered_count = scanned_count - len(verified_vulns)
+        self.logger.info(f"Pentest filter: {scanned_count} scanned, {len(verified_vulns)} verified, {filtered_count} filtered out")
+
+        if not verified_vulns:
+            return {
+                'success': True,
+                'url': url,
+                'vulnerabilities_found': 0,
+                'scan_time': round(scan_time, 2),
+                'pentest_time': round(pentest_time, 2),
+                'scanned_count': scanned_count,
+                'filtered_count': filtered_count,
+                'message': 'No exploitable vulnerabilities confirmed'
+            }
+
+        # Stage 2: Predict (only on verified vulnerabilities)
         pred_start = time.time()
-        predictions = self.predict_risks(vulnerabilities)
+        predictions = self.predict_risks(verified_vulns)
         pred_time = time.time() - pred_start
 
         # Stage 4: Prioritize
@@ -702,20 +744,24 @@ University of East London - BSc Computer Science
 
         total_time = time.time() - start_time
 
-        # Format results with full vulnerability details
+        # Format results with full vulnerability details + pentest evidence
         results = {
             'success': True,
             'url': url,
-            'vulnerabilities_found': len(vulnerabilities),
+            'vulnerabilities_found': len(verified_vulns),
             'scan_time': round(scan_time, 2),
+            'pentest_time': round(pentest_time, 2),
             'prediction_time': round(pred_time, 2),
             'prioritization_time': round(prior_time, 2),
             'total_time': round(total_time, 2),
+            'scanned_count': scanned_count,
+            'filtered_count': filtered_count,
             'risk_scores': [
                 self._format_risk_score(
                     rs,
                     vuln_lookup.get(rs.vulnerability_id),
-                    xai_lookup.get(rs.vulnerability_id)
+                    xai_lookup.get(rs.vulnerability_id),
+                    pentest_lookup
                 )
                 for rs in risk_scores
             ],
@@ -770,9 +816,47 @@ University of East London - BSc Computer Science
                 'message': 'No vulnerabilities found'
             }
 
+        # Stage 1.5: Pentest Validation
+        pentest_start = time.time()
+        pentest_config = {**SCANNER_CONFIG}
+        if cookies:
+            pentest_config['cookies'] = cookies
+        orchestrator = PentestOrchestrator(pentest_config)
+        pentest_results = orchestrator.validate_all(vulnerabilities)
+        pentest_time = time.time() - pentest_start
+
+        pentest_lookup = {}
+        for pr in pentest_results:
+            key = (pr.vulnerability_url, pr.vulnerability_parameter, pr.vulnerability_type)
+            pentest_lookup[key] = pr
+
+        scanned_count = len(vulnerabilities)
+        verified_vulns = []
+        for vuln in vulnerabilities:
+            key = (vuln.url, vuln.parameter, vuln.vuln_type.value)
+            pr = pentest_lookup.get(key)
+            if pr and pr.verification_status in (VerificationStatus.CONFIRMED, VerificationStatus.LIKELY):
+                verified_vulns.append(vuln)
+
+        filtered_count = scanned_count - len(verified_vulns)
+        self.logger.info(f"Pentest filter: {scanned_count} scanned, {len(verified_vulns)} verified, {filtered_count} filtered out")
+
+        if not verified_vulns:
+            return {
+                'success': True,
+                'url': base_url,
+                'mode': 'site_scan',
+                'vulnerabilities_found': 0,
+                'scan_time': round(scan_time, 2),
+                'pentest_time': round(pentest_time, 2),
+                'scanned_count': scanned_count,
+                'filtered_count': filtered_count,
+                'message': 'No exploitable vulnerabilities confirmed'
+            }
+
         # Stage 2: Predict risks
         pred_start = time.time()
-        predictions = self.predict_risks(vulnerabilities)
+        predictions = self.predict_risks(verified_vulns)
         pred_time = time.time() - pred_start
 
         # Stage 4: Prioritize
@@ -800,16 +884,20 @@ University of East London - BSc Computer Science
             'success': True,
             'url': base_url,
             'mode': 'site_scan',
-            'vulnerabilities_found': len(vulnerabilities),
+            'vulnerabilities_found': len(verified_vulns),
             'scan_time': round(scan_time, 2),
+            'pentest_time': round(pentest_time, 2),
             'prediction_time': round(pred_time, 2),
             'prioritization_time': round(prior_time, 2),
             'total_time': round(total_time, 2),
+            'scanned_count': scanned_count,
+            'filtered_count': filtered_count,
             'risk_scores': [
                 self._format_risk_score(
                     rs,
                     vuln_lookup.get(rs.vulnerability_id),
-                    xai_lookup.get(rs.vulnerability_id)
+                    xai_lookup.get(rs.vulnerability_id),
+                    pentest_lookup
                 )
                 for rs in risk_scores
             ],
@@ -853,7 +941,8 @@ University of East London - BSc Computer Science
             cvss_base = np.random.uniform(cvss_range[0], cvss_range[1])
             cvss_exploitability = exploitability_map.get(vuln.vuln_type.value, 2.0)
             impact_score = cvss_base * 0.6
-            has_exploit = vuln.confidence > 0.8
+            # After pentest validation, verified vulns have proven exploitability
+            has_exploit = True if vuln.confidence >= 0.85 else vuln.confidence > 0.8
 
             # Raw CVSS vector values for this vuln type
             user_interaction = 'REQUIRED' if 'XSS' in vuln.vuln_type.value else 'NONE'
@@ -928,8 +1017,8 @@ University of East London - BSc Computer Science
 
         return pd.DataFrame(data)
 
-    def _format_risk_score(self, risk_score: RiskScore, original_vuln: Optional[VulnerabilityResult] = None, xai_data: Optional[Dict] = None) -> Dict:
-        """Format risk score for JSON response, including original vulnerability details and XAI explanations"""
+    def _format_risk_score(self, risk_score: RiskScore, original_vuln: Optional[VulnerabilityResult] = None, xai_data: Optional[Dict] = None, pentest_lookup: Optional[Dict] = None) -> Dict:
+        """Format risk score for JSON response, including original vulnerability details, XAI explanations, and pentest evidence"""
         result = {
             'vulnerability_id': risk_score.vulnerability_id,
             'risk_score': round(risk_score.final_risk_score, 2),
@@ -974,6 +1063,18 @@ University of East London - BSc Computer Science
                 'remediation': metadata['remediation'],
                 'priority': risk_score.remediation_priority.value
             }
+
+        # Add pentest evidence
+        if pentest_lookup and original_vuln:
+            key = (original_vuln.url, original_vuln.parameter, original_vuln.vuln_type.value)
+            pentest_result = pentest_lookup.get(key)
+            if pentest_result:
+                result['pentest'] = pentest_result.to_dict()
+                result['verified'] = pentest_result.verification_status.value
+            else:
+                result['verified'] = 'not_tested'
+        else:
+            result['verified'] = 'not_tested'
 
         return result
 
@@ -1114,11 +1215,65 @@ University of East London - BSc Computer Science
                 'message': 'No vulnerabilities found'
             }
 
+        # Phase: Pentesting
+        pm.set_phase(scan_id, ScanPhase.PENTESTING,
+                     pentest_total=len(vulnerabilities))
+
+        pentest_start = time.time()
+        pentest_config = {**SCANNER_CONFIG}
+        if cookies:
+            pentest_config['cookies'] = cookies
+        orchestrator = PentestOrchestrator(pentest_config)
+
+        def pentest_progress(current, total, confirmed, technique):
+            pm.update(scan_id,
+                      pentest_current=current,
+                      pentest_total=total,
+                      pentest_confirmed=confirmed,
+                      pentest_technique=technique)
+
+        pentest_results = orchestrator.validate_all(
+            vulnerabilities, progress_callback=pentest_progress
+        )
+        pentest_time = time.time() - pentest_start
+
+        # Build pentest lookup and filter
+        pentest_lookup = {}
+        for pr in pentest_results:
+            key = (pr.vulnerability_url, pr.vulnerability_parameter, pr.vulnerability_type)
+            pentest_lookup[key] = pr
+
+        scanned_count = len(vulnerabilities)
+        verified_vulns = []
+        for vuln in vulnerabilities:
+            key = (vuln.url, vuln.parameter, vuln.vuln_type.value)
+            pr = pentest_lookup.get(key)
+            if pr and pr.verification_status in (VerificationStatus.CONFIRMED, VerificationStatus.LIKELY):
+                verified_vulns.append(vuln)
+
+        filtered_count = scanned_count - len(verified_vulns)
+        self.logger.info(f"Pentest filter: {scanned_count} scanned, {len(verified_vulns)} verified, {filtered_count} filtered out")
+
+        if not verified_vulns:
+            pm.set_phase(scan_id, ScanPhase.COMPLETE)
+            return {
+                'success': True,
+                'url': url,
+                'vulnerabilities_found': 0,
+                'scan_time': round(scan_time, 2),
+                'pentest_time': round(pentest_time, 2),
+                'scanned_count': scanned_count,
+                'filtered_count': filtered_count,
+                'message': 'No exploitable vulnerabilities confirmed'
+            }
+
+        pm.update(scan_id, vulns_found=len(verified_vulns))
+
         # Phase: Analyzing
         pm.set_phase(scan_id, ScanPhase.ANALYZING, analysis_step="Running ML predictions")
 
         pred_start = time.time()
-        predictions = self.predict_risks(vulnerabilities)
+        predictions = self.predict_risks(verified_vulns)
         pred_time = time.time() - pred_start
 
         pm.update(scan_id, analysis_step="Prioritizing vulnerabilities")
@@ -1145,13 +1300,16 @@ University of East London - BSc Computer Science
         return {
             'success': True,
             'url': url,
-            'vulnerabilities_found': len(vulnerabilities),
+            'vulnerabilities_found': len(verified_vulns),
             'scan_time': round(scan_time, 2),
+            'pentest_time': round(pentest_time, 2),
             'prediction_time': round(pred_time, 2),
             'prioritization_time': round(prior_time, 2),
             'total_time': round(total_time, 2),
+            'scanned_count': scanned_count,
+            'filtered_count': filtered_count,
             'risk_scores': [
-                self._format_risk_score(rs, vuln_lookup.get(rs.vulnerability_id), xai_lookup.get(rs.vulnerability_id))
+                self._format_risk_score(rs, vuln_lookup.get(rs.vulnerability_id), xai_lookup.get(rs.vulnerability_id), pentest_lookup)
                 for rs in risk_scores
             ],
             'statistics': self._calculate_statistics(risk_scores),
@@ -1289,11 +1447,67 @@ University of East London - BSc Computer Science
                 'message': 'No vulnerabilities found'
             }
 
+        # Phase: Pentesting
+        pm.set_phase(scan_id, ScanPhase.PENTESTING,
+                     pentest_total=len(vulnerabilities))
+
+        pentest_start = time.time()
+        pentest_config = {**SCANNER_CONFIG}
+        if cookies:
+            pentest_config['cookies'] = cookies
+        orchestrator = PentestOrchestrator(pentest_config)
+
+        def pentest_progress(current, total, confirmed, technique):
+            pm.update(scan_id,
+                      pentest_current=current,
+                      pentest_total=total,
+                      pentest_confirmed=confirmed,
+                      pentest_technique=technique)
+
+        pentest_results = orchestrator.validate_all(
+            vulnerabilities, progress_callback=pentest_progress
+        )
+        pentest_time = time.time() - pentest_start
+
+        # Build pentest lookup and filter
+        pentest_lookup = {}
+        for pr in pentest_results:
+            key = (pr.vulnerability_url, pr.vulnerability_parameter, pr.vulnerability_type)
+            pentest_lookup[key] = pr
+
+        scanned_count = len(vulnerabilities)
+        verified_vulns = []
+        for vuln in vulnerabilities:
+            key = (vuln.url, vuln.parameter, vuln.vuln_type.value)
+            pr = pentest_lookup.get(key)
+            if pr and pr.verification_status in (VerificationStatus.CONFIRMED, VerificationStatus.LIKELY):
+                verified_vulns.append(vuln)
+
+        filtered_count = scanned_count - len(verified_vulns)
+        self.logger.info(f"Pentest filter: {scanned_count} scanned, {len(verified_vulns)} verified, {filtered_count} filtered out")
+
+        if not verified_vulns:
+            pm.set_phase(scan_id, ScanPhase.COMPLETE)
+            return {
+                'success': True,
+                'url': base_url,
+                'mode': 'site_scan',
+                'urls_scanned': len(urls_to_scan),
+                'vulnerabilities_found': 0,
+                'scan_time': round(scan_time, 2),
+                'pentest_time': round(pentest_time, 2),
+                'scanned_count': scanned_count,
+                'filtered_count': filtered_count,
+                'message': 'No exploitable vulnerabilities confirmed'
+            }
+
+        pm.update(scan_id, vulns_found=len(verified_vulns))
+
         # Phase: Analyzing
         pm.set_phase(scan_id, ScanPhase.ANALYZING, analysis_step="Running ML predictions")
 
         pred_start = time.time()
-        predictions = self.predict_risks(vulnerabilities)
+        predictions = self.predict_risks(verified_vulns)
         pred_time = time.time() - pred_start
 
         pm.update(scan_id, analysis_step="Prioritizing vulnerabilities")
@@ -1322,13 +1536,16 @@ University of East London - BSc Computer Science
             'url': base_url,
             'mode': 'site_scan',
             'urls_scanned': len(urls_to_scan),
-            'vulnerabilities_found': len(vulnerabilities),
+            'vulnerabilities_found': len(verified_vulns),
             'scan_time': round(scan_time, 2),
+            'pentest_time': round(pentest_time, 2),
             'prediction_time': round(pred_time, 2),
             'prioritization_time': round(prior_time, 2),
             'total_time': round(total_time, 2),
+            'scanned_count': scanned_count,
+            'filtered_count': filtered_count,
             'risk_scores': [
-                self._format_risk_score(rs, vuln_lookup.get(rs.vulnerability_id), xai_lookup.get(rs.vulnerability_id))
+                self._format_risk_score(rs, vuln_lookup.get(rs.vulnerability_id), xai_lookup.get(rs.vulnerability_id), pentest_lookup)
                 for rs in risk_scores
             ],
             'statistics': self._calculate_statistics(risk_scores),

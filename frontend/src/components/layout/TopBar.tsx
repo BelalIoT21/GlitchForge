@@ -60,7 +60,7 @@ export default function TopBar({ onDownloadReport, canDownload, generating, onGo
 
         {/* Center: Tagline (hidden on mobile) */}
         <div className="gf-topbar-center">
-          <span className="gf-topbar-tagline">AI-Powered Vulnerability Scanner</span>
+          <span className="gf-topbar-tagline">AI-Powered Vulnerability Scanner & Pentester</span>
         </div>
 
         {/* Right: Status + Actions */}

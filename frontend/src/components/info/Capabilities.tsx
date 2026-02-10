@@ -58,7 +58,7 @@ export default function Capabilities() {
       <div className="gf-cap-section">
         <div className="gf-cap-section-header">
           <div className="gf-cap-section-title">Supported Vulnerability Types</div>
-          <div className="gf-cap-section-subtitle">Active scanning with targeted payloads</div>
+          <div className="gf-cap-section-subtitle">Active scanning & automated exploit validation</div>
         </div>
         <div className="gf-cap-vulns">
           {CAPABILITIES.map(cap => (

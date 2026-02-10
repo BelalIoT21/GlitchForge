@@ -14,6 +14,7 @@ class ScanPhase(Enum):
     INITIALIZING = "initializing"
     CRAWLING = "crawling"
     SCANNING = "scanning"
+    PENTESTING = "pentesting"
     ANALYZING = "analyzing"
     COMPLETE = "complete"
     ERROR = "error"
@@ -41,6 +42,12 @@ class ScanProgress:
     # Current scanner
     current_scanner: str = ""
 
+    # Pentest progress
+    pentest_current: int = 0
+    pentest_total: int = 0
+    pentest_confirmed: int = 0
+    pentest_technique: str = ""
+
     # Analysis progress
     analysis_step: str = ""
 
@@ -62,6 +69,10 @@ class ScanProgress:
             "total_urls": self.total_urls,
             "vulns_found": self.vulns_found,
             "current_scanner": self.current_scanner,
+            "pentest_current": self.pentest_current,
+            "pentest_total": self.pentest_total,
+            "pentest_confirmed": self.pentest_confirmed,
+            "pentest_technique": self.pentest_technique,
             "analysis_step": self.analysis_step,
             "elapsed_seconds": round(self.elapsed_seconds, 1),
             "error_message": self.error_message
