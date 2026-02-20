@@ -1,5 +1,12 @@
 import type { ScanResult, RiskScore } from '../../api/types'
 
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds.toFixed(1)}s`
+  const m = Math.floor(seconds / 60)
+  const s = (seconds % 60).toFixed(0).padStart(2, '0')
+  return `${m}m ${s}s`
+}
+
 const LEVEL_COLORS: Record<string, [number, number, number]> = {
   Critical: [239, 68, 68],
   High:     [249, 115, 22],
@@ -105,9 +112,9 @@ export async function generateReport(result: ScanResult): Promise<void> {
   doc.setTextColor(140, 150, 180)
   doc.text(`Target:         ${result.url}`, m, 56)
   doc.text(`Date:           ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, m, 63)
-  doc.text(`Total Time:     ${(result.total_time ?? result.scan_time).toFixed(2)}s`, m, 70)
+  doc.text(`Total Time:     ${formatDuration(result.total_time ?? result.scan_time)}`, m, 70)
   if (result.pentest_time) {
-    doc.text(`Pentest Time:   ${result.pentest_time.toFixed(2)}s`, m, 77)
+    doc.text(`Pentest Time:   ${formatDuration(result.pentest_time)}`, m, 77)
   }
   doc.text(`Findings:       ${result.vulnerabilities_found} confirmed vulnerabilities`, m, result.pentest_time ? 84 : 77)
 
@@ -131,7 +138,7 @@ export async function generateReport(result: ScanResult): Promise<void> {
     { label: 'Vulnerabilities', value: String(result.vulnerabilities_found), color: result.vulnerabilities_found > 0 ? LEVEL_COLORS.Critical : LEVEL_COLORS.Low },
     { label: 'Avg Risk Score', value: result.statistics ? result.statistics.average_risk_score.toFixed(1) : 'N/A', color: [129, 140, 248] as [number, number, number] },
     { label: 'ML Agreement', value: result.statistics ? `${result.statistics.model_agreement_rate?.toFixed(0) ?? '—'}%` : 'N/A', color: [129, 140, 248] as [number, number, number] },
-    { label: 'Total Duration', value: `${(result.total_time ?? result.scan_time).toFixed(1)}s`, color: [129, 140, 248] as [number, number, number] },
+    { label: 'Total Duration', value: formatDuration(result.total_time ?? result.scan_time), color: [129, 140, 248] as [number, number, number] },
   ]
 
   renderMetricRow(doc, row1, m, y, boxW)
@@ -142,7 +149,7 @@ export async function generateReport(result: ScanResult): Promise<void> {
     { label: 'Pentest Verified', value: String(confirmedCount), color: [34, 197, 94] as [number, number, number] },
     { label: 'Likely Exploitable', value: String(likelyCount), color: [234, 179, 8] as [number, number, number] },
     { label: 'False Positives', value: String(result.filtered_count ?? 0), color: [239, 68, 68] as [number, number, number] },
-    { label: 'Pentest Time', value: result.pentest_time ? `${result.pentest_time.toFixed(1)}s` : 'N/A', color: [167, 139, 250] as [number, number, number] },
+    { label: 'Pentest Time', value: result.pentest_time ? formatDuration(result.pentest_time) : 'N/A', color: [167, 139, 250] as [number, number, number] },
   ]
 
   renderMetricRow(doc, row2, m, y, boxW)
@@ -369,7 +376,7 @@ function renderVulnCard(
   m: number,
   cw: number,
   startY: number,
-  pw: number,
+  _pw: number,
   ph: number,
   newPage: () => void,
 ) {
@@ -529,7 +536,7 @@ function renderVulnCard(
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(100, 100, 115)
     const techLabel = TECHNIQUE_LABELS[ev.technique] || ev.technique
-    const durLabel = vuln.pentest.duration_seconds ? ` | ${vuln.pentest.duration_seconds.toFixed(1)}s` : ''
+    const durLabel = vuln.pentest.duration_seconds ? ` | ${formatDuration(vuln.pentest.duration_seconds)}` : ''
     doc.text(`${techLabel}${durLabel}`, m + cw - 8, y, { align: 'right' })
     y += 6
 
