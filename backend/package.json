@@ -2,6 +2,6 @@
   "name": "glitchforge-backend",
   "version": "1.0.0",
   "scripts": {
-    "start": "python main.py"
+    "start": "py main.py"
   }
 }

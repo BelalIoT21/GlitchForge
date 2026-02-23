@@ -1,4 +1,4 @@
-import { useState, useCallback, type FormEvent } from 'react'
+import { useState, useCallback, useRef, useEffect, type FormEvent } from 'react'
 
 interface ScanInputProps {
   onSubmit: (url: string, scanTypes: string[], cookies?: Record<string, string>, crawl?: boolean) => void
@@ -6,6 +6,7 @@ interface ScanInputProps {
 }
 
 const ALL_TYPES = ['sql', 'xss', 'csrf']
+const SECURITY_LEVELS = ['low', 'medium', 'high', 'impossible']
 
 export default function ScanInput({ onSubmit, loading }: ScanInputProps) {
   const [url, setUrl] = useState('')
@@ -14,6 +15,21 @@ export default function ScanInput({ onSubmit, loading }: ScanInputProps) {
   const [phpSessionId, setPhpSessionId] = useState('')
   const [securityLevel, setSecurityLevel] = useState('low')
   const [crawl, setCrawl] = useState(false)
+  
+  // Custom Dropdown State
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const toggleType = (type: string) => {
     setScanTypes(prev =>
@@ -24,18 +40,12 @@ export default function ScanInput({ onSubmit, loading }: ScanInputProps) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!url.trim() || scanTypes.length === 0) return
-
-    // Build cookies object if PHPSESSID is provided
     const cookies = phpSessionId.trim()
       ? { PHPSESSID: phpSessionId.trim(), security: securityLevel }
       : undefined
-
     onSubmit(url.trim(), scanTypes, cookies, crawl)
   }
-
-  const isDvwaUrl = url.toLowerCase().includes('dvwa')
-  const isKnownVulnSite = isDvwaUrl || url.toLowerCase().includes('vulnweb') || url.toLowerCase().includes('bwapp')
-
+  
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLFormElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * 100
@@ -119,21 +129,8 @@ export default function ScanInput({ onSubmit, loading }: ScanInputProps) {
         </button>
       </div>
 
-      {crawl && isKnownVulnSite && (
-        <div className="gf-scan-hint" style={{ marginTop: '12px' }}>
-          {isDvwaUrl && 'DVWA detected - will scan all vulnerability pages automatically'}
-          {url.toLowerCase().includes('vulnweb') && 'Acunetix test site detected - will scan known vulnerable endpoints'}
-          {url.toLowerCase().includes('bwapp') && 'bWAPP detected - will scan known vulnerable pages'}
-        </div>
-      )}
-
       {showAdvanced && (
         <div className="gf-scan-advanced">
-          {isDvwaUrl && (
-            <div className="gf-scan-hint">
-              DVWA detected - enter your session cookie to scan authenticated pages
-            </div>
-          )}
           <div className="gf-scan-auth-row">
             <div className="gf-scan-auth-field">
               <label htmlFor="phpsessid">PHPSESSID Cookie</label>
@@ -147,20 +144,36 @@ export default function ScanInput({ onSubmit, loading }: ScanInputProps) {
                 disabled={loading}
               />
             </div>
-            <div className="gf-scan-auth-field">
-              <label htmlFor="security">Security Level</label>
-              <select
-                id="security"
-                className="gf-scan-auth-select"
-                value={securityLevel}
-                onChange={e => setSecurityLevel(e.target.value)}
-                disabled={loading}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="impossible">Impossible</option>
-              </select>
+
+            <div className="gf-scan-auth-field" ref={dropdownRef}>
+              <label>Security Level</label>
+              <div className="gf-custom-select-container">
+                {/* Trigger stays as a div styled like the original select */}
+                <div 
+                  className={`gf-scan-auth-select ${isOpen ? 'active' : ''}`} 
+                  onClick={() => !loading && setIsOpen(!isOpen)}
+                >
+                  {securityLevel}
+                </div>
+                
+                {/* Custom List of Items */}
+                {isOpen && (
+                  <div className="gf-custom-dropdown-list">
+                    {SECURITY_LEVELS.map((level) => (
+                      <div 
+                        key={level}
+                        className={`gf-custom-dropdown-item ${securityLevel === level ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSecurityLevel(level);
+                          setIsOpen(false);
+                        }}
+                      >
+                        {level}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
