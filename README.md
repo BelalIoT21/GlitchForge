@@ -387,7 +387,7 @@ All exploitation is controlled and non-destructive:
 
 | Target | Mode | Expected |
 |--------|------|----------|
-| `http://testphp.vulnweb.com` | Crawl ON | Multiple confirmed vulnerabilities across pages |
+| `http://testaspnet.vulnweb.com` | Crawl ON | Multiple confirmed vulnerabilities across pages |
 | DVWA (local VM) + cookies | Crawl ON | SQL, XSS, CSRF confirmed with pentest evidence |
 | Any URL with known SQLi | Single URL | UNION extraction or blind confirmation |
 

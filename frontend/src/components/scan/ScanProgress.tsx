@@ -16,6 +16,63 @@ const phaseLabels: Record<string, string> = {
   error: 'Error'
 }
 
+// Phase budget: initializing 0-5, crawling 5-15, scanning 15-72,
+//               pentesting 72-87, analyzing 87-97, complete 100
+const SCAN_START = 15
+const SCAN_END = 72
+const PENTEST_START = 72
+const PENTEST_END = 87
+const ANALYZE_START = 87
+// Backend runs XSS, SQL_INJECTION, CSRF per URL
+const EXPECTED_SCANNERS = 3
+
+function computeTargetPct(
+  progress: ScanProgressType | null | undefined,
+  seenScanners: string[]
+): number {
+  const phase = progress?.phase || 'initializing'
+
+  if (phase === 'initializing') return 3
+
+  if (phase === 'crawling') {
+    return 5 + Math.min(progress?.urls_discovered || 0, 10)
+  }
+
+  if (phase === 'scanning') {
+    const totalUrls = progress?.total_urls || 1
+    const urlIdx = progress?.current_url_index || 0
+    // Each scanner completed = progress within the current URL
+    const scannerFrac = Math.min(seenScanners.length / EXPECTED_SCANNERS, 1)
+
+    if (totalUrls > 1) {
+      // Multi-URL: completed URLs + scanner sub-progress within current URL
+      const completedUrlsFrac = (urlIdx - 1) / totalUrls
+      const withinUrlFrac = scannerFrac / totalUrls
+      return SCAN_START + (completedUrlsFrac + withinUrlFrac) * (SCAN_END - SCAN_START)
+    } else {
+      // Single URL: scanner transitions are the only progress signal
+      return SCAN_START + scannerFrac * (SCAN_END - SCAN_START)
+    }
+  }
+
+  if (phase === 'pentesting') {
+    const total = progress?.pentest_total || 0
+    const current = progress?.pentest_current || 0
+    const frac = total > 0 ? current / total : 0
+    return PENTEST_START + frac * (PENTEST_END - PENTEST_START)
+  }
+
+  if (phase === 'analyzing') {
+    const step = progress?.analysis_step || ''
+    // Backend sends exactly 2 steps: "Running ML predictions" → "Prioritizing vulnerabilities"
+    if (step.includes('Prioritizing')) return ANALYZE_START + 6  // ~93%
+    return ANALYZE_START  // 87%
+  }
+
+  if (phase === 'complete') return 100
+  return 0
+}
+
 export default function ScanProgress({ url, progress }: ScanProgressProps) {
   const phase = progress?.phase || 'initializing'
   const phaseLabel = phaseLabels[phase] || 'Processing...'
@@ -24,11 +81,14 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
   const startTimeRef = useRef<number>(Date.now())
   const [elapsedTime, setElapsedTime] = useState(0)
 
-  // Smooth animated progress for scanning and analyzing phases
-  const [scanProgress, setScanProgress] = useState(5)
-  const [analyzeProgress, setAnalyzeProgress] = useState(85)
-  const scanStartRef = useRef<number | null>(null)
-  const analyzeStartRef = useRef<number | null>(null)
+  // Track which scanners have completed (to drive real scanning progress)
+  const seenScannersRef = useRef<string[]>([])
+  const prevScannerRef = useRef<string>('')
+  const prevPhaseRef = useRef<string>('')
+  const prevUrlIndexRef = useRef<number>(0)
+
+  // Single smooth display value that eases toward the computed target
+  const [displayPct, setDisplayPct] = useState(3)
 
   useEffect(() => {
     startTimeRef.current = Date.now()
@@ -38,92 +98,46 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
     return () => clearInterval(interval)
   }, [])
 
-  // Animate scanning phase smoothly (prevents jumping to 85% on single URL)
+  // Track scanner transitions and reset when URL or phase changes
   useEffect(() => {
-    if (phase === 'scanning') {
-      if (!scanStartRef.current) {
-        scanStartRef.current = Date.now()
-        setScanProgress(15)
-      }
+    const currentScanner = progress?.current_scanner || ''
+    const urlIdx = progress?.current_url_index || 0
 
-      // For multi-URL: target based on URL progress
-      // For single URL: animate gradually to 75%
-      const urlTarget = progress?.total_urls && progress.total_urls > 1
-        ? 15 + (progress.current_url_index / progress.total_urls) * 70
-        : 75
-
-      const interval = setInterval(() => {
-        setScanProgress(prev => {
-          if (prev >= urlTarget) return urlTarget
-          // Gradual increase with easing
-          const remaining = urlTarget - prev
-          const increment = Math.max(0.5, remaining * 0.08)
-          return Math.min(urlTarget, prev + increment)
-        })
-      }, 100)
-
-      return () => clearInterval(interval)
-    } else if (phase === 'pentesting' || phase === 'analyzing' || phase === 'complete') {
-      setScanProgress(85)
-    } else {
-      scanStartRef.current = null
-      setScanProgress(5)
+    // Reset seen scanners when entering scanning phase or when URL changes
+    if (phase !== prevPhaseRef.current || (phase === 'scanning' && urlIdx !== prevUrlIndexRef.current)) {
+      seenScannersRef.current = []
+      prevScannerRef.current = ''
+      prevPhaseRef.current = phase
+      prevUrlIndexRef.current = urlIdx
     }
-  }, [phase, progress?.current_url_index, progress?.total_urls])
 
-  // Animate the analyzing phase smoothly
+    // When current_scanner changes, the previous one has finished
+    if (phase === 'scanning' && currentScanner && currentScanner !== prevScannerRef.current) {
+      if (prevScannerRef.current && !seenScannersRef.current.includes(prevScannerRef.current)) {
+        seenScannersRef.current = [...seenScannersRef.current, prevScannerRef.current]
+      }
+      prevScannerRef.current = currentScanner
+    }
+  }, [phase, progress?.current_scanner, progress?.current_url_index])
+
+  // Animation loop: smoothly ease displayPct toward real target
   useEffect(() => {
-    if (phase === 'analyzing') {
-      if (!analyzeStartRef.current) {
-        analyzeStartRef.current = Date.now()
-        setAnalyzeProgress(85)
-      }
+    const interval = setInterval(() => {
+      const isComplete = progress?.phase === 'complete'
+      const target = computeTargetPct(progress, seenScannersRef.current)
+      setDisplayPct(prev => {
+        if (Math.abs(prev - target) < 0.2) return target
+        const diff = target - prev
+        // Snap to 100% quickly on complete (must finish within App's 800ms window)
+        // Faster easing for big phase jumps, slow trickle within a phase
+        const speed = isComplete ? 0.7 : Math.abs(diff) > 15 ? 0.1 : 0.035
+        return prev + diff * speed
+      })
+    }, 150)
+    return () => clearInterval(interval)
+  }, [progress])
 
-      const step = progress?.analysis_step || ''
-      const targetPct = step.includes('Prioritizing') ? 95 : 90
-
-      // Gradually increase towards target
-      const interval = setInterval(() => {
-        setAnalyzeProgress(prev => {
-          if (prev >= targetPct) return targetPct
-          // Slow down as we approach target (easing)
-          const remaining = targetPct - prev
-          const increment = Math.max(0.3, remaining * 0.1)
-          return Math.min(targetPct, prev + increment)
-        })
-      }, 100)
-
-      return () => clearInterval(interval)
-    } else if (phase === 'complete') {
-      setAnalyzeProgress(100)
-    } else {
-      analyzeStartRef.current = null
-      setAnalyzeProgress(85)
-    }
-  }, [phase, progress?.analysis_step])
-
-  // Calculate progress percentage
-  let progressPct = 0
-  if (phase === 'initializing') {
-    progressPct = 5
-  } else if (phase === 'crawling') {
-    // Crawling phase: 5-15%
-    progressPct = 5 + Math.min(progress?.urls_discovered || 0, 10)
-  } else if (phase === 'scanning') {
-    // Use animated scan progress
-    progressPct = scanProgress
-  } else if (phase === 'pentesting') {
-    // Pentesting occupies 75%-85% of the progress bar
-    const pentestPct = progress?.pentest_total
-      ? (progress.pentest_current / progress.pentest_total)
-      : 0
-    progressPct = 75 + pentestPct * 10
-  } else if (phase === 'analyzing') {
-    // Use the animated progress value
-    progressPct = analyzeProgress
-  } else if (phase === 'complete') {
-    progressPct = 100
-  }
+  const progressPct = Math.round(displayPct)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
@@ -191,7 +205,7 @@ export default function ScanProgress({ url, progress }: ScanProgressProps) {
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <span className="gf-progress-pct">{Math.round(progressPct)}%</span>
+        <span className="gf-progress-pct">{progressPct}%</span>
       </div>
 
       {/* Detailed stats */}

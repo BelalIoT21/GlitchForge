@@ -9,7 +9,6 @@ from datetime import datetime
 from enum import Enum
 from urllib.parse import urlparse, parse_qs, urljoin
 import requests
-import time
 
 from app.utils.logger import get_logger
 
@@ -143,9 +142,13 @@ class BaseScanner(ABC):
                 from bs4 import BeautifulSoup
                 soup = BeautifulSoup(response.content, 'html.parser')
 
-                # Find input fields in forms
+                # Find input fields in forms — skip buttons/submit controls
+                NON_INJECTABLE_TYPES = {'submit', 'button', 'image', 'reset', 'hidden', 'file'}
                 for form in soup.find_all('form'):
                     for inp in form.find_all(['input', 'select', 'textarea']):
+                        inp_type = inp.get('type', 'text').lower()
+                        if inp_type in NON_INJECTABLE_TYPES:
+                            continue
                         name = inp.get('name')
                         if name:
                             params.append(name)
@@ -171,10 +174,19 @@ class BaseScanner(ABC):
             # Timestamps
             'timestamp', 'ts', 'time', '_', 'v', 'ver', 'version', 'cache',
             # Common safe params
-            'ref', 'referrer', 'source', 'redirect_uri', 'return_url'
+            'ref', 'referrer', 'source', 'redirect_uri', 'return_url',
+            # ASP.NET internal state fields — never injectable
+            '__viewstate', '__viewstatey_key', '__viewstategenerator',
+            '__eventtarget', '__eventargument', '__eventvalidation', '__lastfocus',
+            '__scrollpositionx', '__scrollpositiony', '__previouspage',
         }
 
-        filtered = [p for p in params if p.lower() not in SKIP_PARAMS]
+        # Also skip ASP.NET button/submit controls by prefix
+        filtered = [
+            p for p in params
+            if p.lower() not in SKIP_PARAMS
+            and not p.lower().startswith('__')
+        ]
 
         # Limit to first 10 parameters (more than this is excessive)
         if len(filtered) > 10:
@@ -291,9 +303,6 @@ class BaseScanner(ABC):
                     self.logger.warning(f"Found {result.vuln_type.value} in parameter '{param}'")
                     # Stop testing this parameter - we found a vulnerability
                     break
-
-                # Small delay to be polite
-                time.sleep(0.05)
 
         duration = (datetime.now() - start_time).total_seconds()
         self.logger.info(

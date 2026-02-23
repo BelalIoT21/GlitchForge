@@ -1148,11 +1148,12 @@ University of East London - BSc Computer Science
             config['cookies'] = cookies
         scanner = GlitchForgeScanner(config)
 
-        # Scan with progress updates for each scanner type
+        # Discover params once, then run each scanner with progress updates
+        shared_params = scanner.sql_scanner.discover_parameters(url)
         all_vulnerabilities = []
-        for i, scan_type in enumerate(scan_types):
+        for scan_type in scan_types:
             pm.update(scan_id, current_scanner=scan_type.upper())
-            scanner.scan_all(url=url, scan_types=[scan_type])
+            scanner.scan_all(url=url, scan_types=[scan_type], parameters=shared_params)
             all_vulnerabilities.extend(scanner.all_results)
 
         vulnerabilities = all_vulnerabilities
@@ -1187,13 +1188,13 @@ University of East London - BSc Computer Science
             if sev in by_severity:
                 by_severity[sev] += 1
 
-        # Print scan summary
+        # Print scan summary (scanner phase only — pentest/ML still pending)
         self.logger.info("\n" + "="*70)
-        self.logger.info("SCAN COMPLETE")
+        self.logger.info("SCAN PHASE COMPLETE")
         self.logger.info("="*70)
         self.logger.info(f"URL: {url}")
         self.logger.info(f"Found: {raw_count} total, {unique_count} unique (after deduplication)")
-        self.logger.info(f"Scan Duration: {scan_time:.1f}s")
+        self.logger.info(f"Scanner Phase Duration: {scan_time:.1f}s")
         self.logger.info("\nBy Type:")
         self.logger.info(f"  SQL Injection: {by_type['sql_injection']}")
         self.logger.info(f"  XSS: {by_type['xss']}")
@@ -1294,6 +1295,12 @@ University of East London - BSc Computer Science
             }
 
         total_time = time.time() - start_time
+
+        self.logger.info(
+            f"Total Pipeline Duration: {total_time:.1f}s"
+            f" (scan={scan_time:.1f}s, pentest={pentest_time:.1f}s,"
+            f" ml={pred_time:.1f}s, priority={prior_time:.1f}s)"
+        )
 
         pm.set_phase(scan_id, ScanPhase.COMPLETE)
 
@@ -1376,13 +1383,14 @@ University of East London - BSc Computer Science
                       current_url=url,
                       current_url_index=idx + 1)
 
+            shared_params = scanner.sql_scanner.discover_parameters(url)
             for scan_type in scan_types:
                 pm.update(scan_id, current_scanner=scan_type.upper())
                 try:
-                    scanner.scan_all(url=url, scan_types=[scan_type])
+                    scanner.scan_all(url=url, scan_types=[scan_type], parameters=shared_params)
                     all_vulns.extend(scanner.all_results)
                 except Exception as e:
-                    self.logger.warning(f"Scan error on {url}: {e}")
+                    self.logger.warning(f"Scan error on {url} ({scan_type}): {e}")
 
             pm.update(scan_id, vulns_found=len(all_vulns))
 
@@ -1417,14 +1425,14 @@ University of East London - BSc Computer Science
             if sev in by_severity:
                 by_severity[sev] += 1
 
-        # Print final scan summary
+        # Print scan phase summary (pentest/ML still pending after this)
         self.logger.info("\n" + "="*70)
-        self.logger.info("SITE SCAN COMPLETE")
+        self.logger.info("SITE SCAN PHASE COMPLETE")
         self.logger.info("="*70)
         self.logger.info(f"Base URL: {base_url}")
         self.logger.info(f"URLs Scanned: {len(urls_to_scan)}")
         self.logger.info(f"Found: {raw_count} total, {unique_count} unique (after deduplication)")
-        self.logger.info(f"Scan Duration: {scan_time:.1f}s")
+        self.logger.info(f"Scanner Phase Duration: {scan_time:.1f}s")
         self.logger.info("\nBy Type:")
         self.logger.info(f"  SQL Injection: {by_type['sql_injection']}")
         self.logger.info(f"  XSS: {by_type['xss']}")
@@ -1529,6 +1537,12 @@ University of East London - BSc Computer Science
             }
 
         total_time = time.time() - start_time
+
+        self.logger.info(
+            f"Total Pipeline Duration: {total_time:.1f}s"
+            f" (scan={scan_time:.1f}s, pentest={pentest_time:.1f}s,"
+            f" ml={pred_time:.1f}s, priority={prior_time:.1f}s)"
+        )
 
         pm.set_phase(scan_id, ScanPhase.COMPLETE)
 

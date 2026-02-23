@@ -55,8 +55,8 @@ DVWA_CONFIG = {
 # - Smart parameter filtering (skips tracking params)
 # - Maximum 10 parameters per URL
 SCANNER_CONFIG = {
-    'timeout': 15,
-    'max_retries': 3,
+    'timeout': 8,
+    'max_retries': 2,
     'user_agent': 'GlitchForge/2.0'
 }
 

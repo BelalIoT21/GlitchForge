@@ -95,30 +95,35 @@ class GlitchForgeScanner:
         if scan_types is None:
             scan_types = ['sql', 'xss', 'csrf']
         
+        # Discover parameters once and share across all scanners (avoids 3 separate page fetches)
+        if parameters is None:
+            parameters = self.sql_scanner.discover_parameters(url)
+            self.logger.info(f"Parameters discovered: {parameters}")
+
         # Run SQL Injection scan
         if 'sql' in scan_types or 'sqli' in scan_types:
             self.logger.info("\n[1/3] Running SQL Injection Scanner...")
             self.logger.info("-" * 70)
-            
+
             try:
                 sql_results = self.sql_scanner.scan(url, parameters=parameters)
                 self.all_results.extend(sql_results)
                 self.scan_summary['by_type']['sql_injection'] = len(sql_results)
-                
+
                 self.logger.info(f"SQL Injection scan complete: {len(sql_results)} vulnerabilities found")
             except Exception as e:
                 self.logger.error(f"✗ SQL Injection scan failed: {str(e)}")
-        
+
         # Run XSS scan
         if 'xss' in scan_types:
             self.logger.info("\n[2/3] Running XSS Scanner...")
             self.logger.info("-" * 70)
-            
+
             try:
                 xss_results = self.xss_scanner.scan(url, parameters=parameters)
                 self.all_results.extend(xss_results)
                 self.scan_summary['by_type']['xss'] = len(xss_results)
-                
+
                 self.logger.info(f"XSS scan complete: {len(xss_results)} vulnerabilities found")
             except Exception as e:
                 self.logger.error(f"✗ XSS scan failed: {str(e)}")

@@ -112,8 +112,29 @@ class URLCrawler:
                 f"{dvwa_base}/vulnerabilities/javascript/",
             ]
 
-        # testphp.vulnweb.com - Acunetix test site
-        if 'testphp.vulnweb.com' in url_lower or 'vulnweb.com' in url_lower:
+        # testaspnet.vulnweb.com - Acunetix ASP.NET test site
+        # Actual pages discovered by crawling Default.aspx (verified reachable)
+        if 'testaspnet.vulnweb.com' in url_lower:
+            base = "http://testaspnet.vulnweb.com"
+            return [
+                # Injectable pages: numeric `id` param (SQL injection via OR 1=1 / empty response)
+                f"{base}/Comments.aspx?id=0",
+                f"{base}/Comments.aspx?id=2",
+                f"{base}/Comments.aspx?id=3",
+                f"{base}/ReadNews.aspx?id=0&NewsAd=ads/def.html",
+                f"{base}/ReadNews.aspx?id=2&NewsAd=ads/def.html",
+                f"{base}/ReadNews.aspx?id=3&NewsAd=ads/def.html",
+                # Form pages (login/signup have credential fields)
+                f"{base}/login.aspx",
+                f"{base}/Signup.aspx",
+                # Static / other pages
+                f"{base}/Default.aspx",
+                f"{base}/about.aspx",
+                f"{base}/rssFeed.aspx",
+            ]
+
+        # testphp.vulnweb.com - Acunetix PHP test site
+        if 'testphp.vulnweb.com' in url_lower:
             base = "http://testphp.vulnweb.com"
             return [
                 f"{base}/listproducts.php?cat=1",
